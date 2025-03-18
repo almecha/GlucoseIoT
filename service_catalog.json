@@ -1,7 +1,10 @@
-{"services":[ {
+{"services":[{
     "thingspeak": {
         "api_key": "YOUR_API_KEY",
         "channel_id": "YOUR_CHANNEL_ID"
         }
-    } ]
+    },
+    {
+    "openweathermap": 13
+    }]
 }
