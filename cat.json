@@ -1,61 +1,55 @@
 {
   "projectOwner": "Team 4 (Maria Sol Liendo, Luka Maksimovic, Sebastiano Natali, Nurzhan Aitaliyev)",
   "projectName": "IoT Platform for Smart Glucose Monitor",
-  "lastUpdate": "2024-12-06 00:00",
+  "lastUpdate": "2025-03-19 10:50",
   "broker": {
-    "IP": "mqtt.smartglucose.io",
+    "IP": "mqtt.glucose_monitor.io",
     "port": 1883
   },
   "servicesList": [
     {
-      "serviceID": "CatalogService",
-      "REST_endpoint": "http://catalog.smartglucose.io/devices",
-      "MQTT_topic": "",
-      "timestamp": "2024-12-06"
-    },
-    {
       "serviceID": "RaspberryPiConnector",
-      "REST_endpoint": "http://raspberry.smartglucose.io/sensor-data",
-      "MQTT_topic": "smartglucose/raspberrypi",
-      "timestamp": "2024-12-06"
+      "REST_endpoint": "",
+      "MQTT_topic": "",
+      "timestamp": ""
     },
     {
       "serviceID": "ThresholdAnalyzer",
-      "REST_endpoint": "http://catalog.smartglucose.io/threshold",
-      "MQTT_topic": "smartglucose/alerts",
-      "timestamp": "2024-12-06"
+      "REST_endpoint": "",
+      "MQTT_topic": "glucose_monitor/alerts",
+      "timestamp": ""
     },
     {
       "serviceID": "ReportsGenerator",
-      "REST_endpoint": "http://reports.smartglucose.io",
+      "REST_endpoint": "",
       "MQTT_topic": "",
-      "timestamp": "2024-12-06"
+      "timestamp": ""
     },
     {
       "serviceID": "ThingspeakAdaptor",
-      "REST_endpoint": "http://thingspeak.smartglucose.io",
-      "MQTT_topic": "smartglucose/thingspeak",
-      "timestamp": "2024-12-06"
+      "REST_endpoint": "",
+      "MQTT_topic": "glucose_monitor/thingspeak",
+      "timestamp": ""
     },
     {
       "serviceID": "Dashboard",
-      "REST_endpoint": "http://dashboard.smartglucose.io",
+      "REST_endpoint": "",
       "MQTT_topic": "",
-      "timestamp": "2024-12-06"
+      "timestamp": ""
     },
     {
       "serviceID": "PatientTelegramBot",
       "REST_endpoint": "",
-      "MQTT_topic": "smartglucose/patientbot",
-      "timestamp": "2024-12-06",
-      "token": "your_patient_bot_token"
+      "MQTT_topic": "glucose_monitor/patientbot",
+      "timestamp": "",
+      "token": "patient_bot_token"
     },
     {
       "serviceID": "DoctorTelegramBot",
-      "REST_endpoint": "http://dashboard.smartglucose.io/doctor",
+      "REST_endpoint": "",
       "MQTT_topic": "",
-      "timestamp": "2024-12-06",
-      "token": "your_doctor_bot_token"
+      "timestamp": "",
+      "token": "doctor_bot_token"
     }
   ],
   "devicesList": [
@@ -73,15 +67,15 @@
         {
           "serviceType": "MQTT",
           "topic": [
-            "smartglucose/1/glucose"
+            "glucose_monitor/1/glucose"
           ]
         },
         {
           "serviceType": "REST",
-          "serviceEndpoint": "http://raspberry.smartglucose.io/sensor-data"
+          "serviceIP": ""
         }
       ],
-      "lastUpdate": "2024-12-06"
+      "lastUpdate": "2025-03-19 10:50"
     }
   ],
   "usersList": [
@@ -117,15 +111,15 @@
             {
               "serviceType": "MQTT",
               "topic": [
-                "smartglucose/1/glucose"
+                "glucose_monitor/1/glucose"
               ]
             },
             {
               "serviceType": "REST",
-              "serviceEndpoint": "http://raspberry.smartglucose.io/sensor-data"
+              "serviceEndpoint": ""
             }
           ],
-          "lastUpdate": "2024-12-06"
+          "lastUpdate": "2025-03-19 10:50"
         }
       ]
     }
