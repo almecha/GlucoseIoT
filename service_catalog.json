@@ -1,10 +1,69 @@
-{"services":[{
-    "thingspeak": {
-        "api_key": "YOUR_API_KEY",
-        "channel_id": "YOUR_CHANNEL_ID"
-        }
+{
+    "projectOwners": [
+        "Luka Maksimovic",
+        "Sebastiano Natali",
+        "Sol Liendo",
+        "Nurzhan Aitaliyev"
+    ],
+    "project_name": "GlucoseIoT",
+    "lastUpdate": "2025-03-19 12:58",
+    "broker": {
+        "IP": "test.mosquitto.org",
+        "port": 1883
+    },
+    "servicesList":[
+    {
+        "serviceID":"ThresholdAnalyzer",
+        "REST_endpoint":"glucoseiot/threshold",
+        "MQTT_sub": ["glucoseiot/glucose_level"],
+        "MQTT_pub": ["glucoseiot/threshold"],
+        "timestamp": ""
+    },
+    {   
+        "serviceID":"PatientTelegramBot",
+        "REST_endpoint":"glucoseiot/telegram/patient",
+        "MQTT_sub": ["glucoseiot/glucose_level", "glucoseiot/threshold"],
+        "MQTT_pub": ["glucoseiot/meal_condition"],
+        "timestamp": ""        
+    },
+    {   
+        "serviceID":"DoctorTelegramBot",
+        "REST_endpoint":"glucoseiot/telegram/doctor",
+        "MQTT_sub": ["glucoseiot/glucose_level", "glucoseiot/threshold"],
+        "MQTT_pub": [],
+        "timestamp": ""        
     },
     {
-    "openweathermap": 13
-    }]
+        "serviceID":"ReportsGenerator",
+        "REST_endpoint":"glucoseiot/reports_generator",
+        "MQTT_sub": [],
+        "MQTT_pub": [],
+        "timestamp": ""
+    },
+    {
+        "serviceID":"Dashboard",
+        "REST_endpoint":"glucoseiot/dashboard",
+        "MQTT_sub": [],
+        "MQTT_pub": [],
+        "timestamp": ""
+    },
+    {
+        "serviceID":"GlucoseLevelSensor",
+        "REST_endpoint":"glucoseiot/glucose_level_sensor",
+        "MQTT_sub": [],
+        "MQTT_pub": ["glucoseiot/glucose_level"],
+        "timestamp": ""
+    },
+    {
+        "serviceID":"ThingspeakAdaptor",
+        "REST_endpoint":"glucoseiot/thingspeak_adaptor",
+        "MQTT_sub": ["glucoseiot/glucose_level"],
+        "MQTT_pub": [],
+        "timestamp": ""
+    }
+], 
+    "serviceDetails":[
+
+],
+    "usersList":[]
 }
