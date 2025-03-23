@@ -1,4 +1,5 @@
 {
+    "Catalog_url":"http://127.0.0.1:8080",
     "projectOwners": [
         "Luka Maksimovic",
         "Sebastiano Natali",
@@ -11,6 +12,7 @@
         "IP": "test.mosquitto.org",
         "port": 1883
     },
+    "broker_token": "",
     "servicesList":[
         {
             "serviceID":"ThresholdAnalyzer",
@@ -123,15 +125,38 @@
             "userName": "Patient A",
             "userID": 1,
             "role": "Patient",
-            "chatID": 111111,
-            "threshold_parameters":
+            "connected_devices": [
                 {
-                    "hypoglycemia_th":1,
-                    "pre_f_hyperglycemia_th": 1,
-                    "post_f_hyperglycemia_th": 1,
-                    "last_time_eaten": "",
-                    "lastUpdate": "2025-03-19 10:50:10"
+                    "chatID": 111111
+                },
+                {
+                    "deviceID": 1
+                },
+                {
+                    "thingspeak_info": {
+                        "apikeys":[""],
+                        "channel":""
+                    }
                 }
+            ], 
+            "patient_information": {
+                "age": 20,
+                "target_glucose_level": 10,
+                "target_glucose_level_excersise_premeal": 1, 
+                "target_glucose_level_excersise_postmeal": 1,
+                "max_daily_amount_insulin":1
+            },
+            "threshold_parameters": {
+                "hypoglycemia_th":1,
+                "pre_f_hyperglycemia_th": 1,
+                "post_f_hyperglycemia_th": 1,
+                "last_time_eaten": "",
+                "last_insulin_taken": {
+                    "time": "",
+                    "amount": 222
+                },
+                "lastUpdate": "2025-03-19 10:50:10"
+            }
         },
         {
             "userName": "Doctor B",
