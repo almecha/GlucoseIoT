@@ -1,0 +1,50 @@
+# Catalog
+## API Endpoints
+Users
+GET /users → List all users.
+
+GET /users/patients | /doctors → Filter by role.
+
+GET /users/{userID} → Retrieve user details.
+
+POST /users → Register a new user.
+
+PUT /users/{userID} → Update user info.
+
+DELETE /users/{userID} → Remove user.
+
+Services
+GET /services → List all services.
+
+GET /services/{serviceID} → Get service details.
+
+POST /services → Register a new service.
+
+PUT /services/{serviceID} → Update service info.
+
+DELETE /services/{serviceID} → Remove service.
+
+Devices
+GET /devices → List all devices.
+
+GET /devices/{deviceID} → Get device details.
+
+POST /devices → Register a new device.
+
+PUT /devices/{deviceID} → Update device info.
+
+DELETE /devices/{deviceID} → Remove inactive devices.
+
+Configuration
+GET /config → Retrieve system settings : 
+    Catalog_url (service base URL)
+    broker (MQTT broker IP & port)
+    project_name, projectOwners, lastUpdate
+
+GET /broker → Retrieve MQTT info.
+    "broker": {
+        "IP": "test.mosquitto.org",
+        "port": 1883
+    }
+
+PUT /broker → Update broker info.

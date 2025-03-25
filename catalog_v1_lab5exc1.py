@@ -1,4 +1,5 @@
-'''Lab 5 exc 1'''
+# CATALOG SERVICE
+
 import cherrypy
 import json
 from datetime import datetime,timedelta
@@ -11,7 +12,7 @@ class Catalog:
             self.catalog = json.load(f)
             
     def GET(self, *uri, **params):
-        if uri[0] == "broker" or "IP":                                  #1
+        if uri[0] == "broker":                                          
             response = self.catalog["broker"]
             print(response)
             return json.dumps(response)
@@ -40,7 +41,11 @@ class Catalog:
             if not found:
                 print(f"No users found for {user_ID}.")
             print(response)
-            return json.dumps(response)        
+            return json.dumps(response)
+        elif uri[0] == "config":                                    #4
+            response = self.catalog["devicesList"]
+            print(response)
+            return json.dumps(response)     
         else:
             print("Bad request")
         
