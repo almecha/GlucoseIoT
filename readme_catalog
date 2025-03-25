@@ -1,11 +1,11 @@
 # Catalog
 ## API Endpoints
 Users
-GET /users → List all users.
+GET /users → List all users. done
 
-GET /users/patients | /doctors → Filter by role.
+GET /users/patients | /doctors → Filter by role. done
 
-GET /users/{userID} → Retrieve user details.
+GET /users/{userID} → Retrieve user details. done
 
 POST /users → Register a new user.
 
@@ -14,9 +14,9 @@ PUT /users/{userID} → Update user info.
 DELETE /users/{userID} → Remove user.
 
 Services
-GET /services → List all services.
+GET /services → List all services. done
 
-GET /services/{serviceID} → Get service details.
+GET /services/{serviceID} → Get service details. done
 
 POST /services → Register a new service.
 
@@ -25,9 +25,9 @@ PUT /services/{serviceID} → Update service info.
 DELETE /services/{serviceID} → Remove service.
 
 Devices
-GET /devices → List all devices.
+GET /devices → List all devices. done
 
-GET /devices/{deviceID} → Get device details.
+GET /devices/{deviceID} → Get device details. done
 
 POST /devices → Register a new device.
 
@@ -41,7 +41,7 @@ GET /config → Retrieve system settings :
     broker (MQTT broker IP & port)
     project_name, projectOwners, lastUpdate
 
-GET /broker → Retrieve MQTT info.
+GET /broker → Retrieve MQTT info. done
     "broker": {
         "IP": "test.mosquitto.org",
         "port": 1883
