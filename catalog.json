@@ -96,6 +96,12 @@
     {
       "userID": 1,
       "patientID": 1,
+      "serviceDetails":{
+        "Thingspeak": {
+          "channelID" : "123456",
+          "channelAPIkey" : "HELLOHELLO"
+        }
+      },
       "devicesList": [
         {
           "deviceID": 1,

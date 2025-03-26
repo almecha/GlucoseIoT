@@ -20,7 +20,7 @@
             "MQTT_sub": ["glucoseiot/glucose_level"],
             "MQTT_pub": ["glucoseiot/threshold"],
             "serviceDetails": [], 
-            "timestamp": ""
+            "lastUpdate": ""
         },
         {   
             "serviceID":"PatientTelegramBot",
@@ -28,7 +28,7 @@
             "MQTT_sub": ["glucoseiot/glucose_level", "glucoseiot/threshold"],
             "MQTT_pub": ["glucoseiot/meal_condition"],
             "token": "patient_bot_token",
-            "timestamp": ""        
+            "lastUpdate": ""        
         },
         {   
             "serviceID":"DoctorTelegramBot",
@@ -36,35 +36,35 @@
             "MQTT_sub": ["glucoseiot/glucose_level", "glucoseiot/threshold"],
             "MQTT_pub": [],
             "token": "doctor_bot_token",
-            "timestamp": ""        
+            "lastUpdate": ""        
         },
         {
             "serviceID":"ReportsGenerator",
             "REST_endpoint":"glucoseiot/reports_generator",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": ""
+            "lastUpdate": ""
         },
         {
             "serviceID":"Dashboard",
             "REST_endpoint":"glucoseiot/dashboard",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": ""
+            "lastUpdate": ""
         },
         {
             "serviceID":"GlucoseLevelSensor",
             "REST_endpoint":"glucoseiot/glucose_level_sensor",
             "MQTT_sub": [],
             "MQTT_pub": ["glucoseiot/glucose_level"],
-            "timestamp": ""
+            "lastUpdate": ""
         },
         {
             "serviceID":"ThingspeakAdaptor",
             "REST_endpoint":"glucoseiot/thingspeak_adaptor",
             "MQTT_sub": ["glucoseiot/glucose_level"],
             "MQTT_pub": [],
-            "timestamp": ""
+            "lastUpdate": ""
         }
     ], 
     "serviceDetails":[
