@@ -11,8 +11,8 @@
     "broker": {
         "IP": "test.mosquitto.org",
         "port": 1883
+        
     },
-    "broker_token": "",
     "servicesList":[
         {
             "serviceID":"ThresholdAnalyzer",
