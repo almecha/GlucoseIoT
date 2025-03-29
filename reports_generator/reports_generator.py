@@ -35,7 +35,7 @@ class ReportsGenerator(object):
     def read_json_from_thingspeak(self, patientID):
         """
         Read JSON data from the Thingspeak channel via REST API.
-        Called on page refresh.
+        Called on page refresh...
         """
         channel_id = self.user_api_keys(patientID)
         url = f"{self.BASE_URL}/{channel_id}/feeds.json?api_key={self.THINGSPEAK_USER_API_KEY}&results={self.NUMBER_OF_ENTRIES_PER_REQUEST}"
