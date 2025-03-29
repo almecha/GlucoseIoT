@@ -5,11 +5,19 @@
 # QUESTIONS:  
 # 1. What metrics will we display on the dashboard? (Glucose level, age, etc.)
 # 2. Authentication will be done using streamlit-authenticator https://github.com/mkhorasani/Streamlit-Authenticator
+# DESIGN CONSIDERATIONS:
+'''
+    1.  Idea is to implement authentication using ordinary username & password.
+        Credentials will be created via streamlit registration page.
+        And username & password will be save in config.yaml file also in the catalog.json file
+        Same credentials will be used.
+
+'''
 import json
 import requests
 import pandas as pd
 import streamlit as st
-import streamlit_authenticator as st_auth
+from auth import GlucoseIoTAuth
 
 catalog = json.load(open('../catalog.json', encoding='utf-8'))
 patientList = catalog["patientsList"]
@@ -29,20 +37,20 @@ def user_api_keys(patient_id):
     
     return patientList[patient_id]["serviceDetails"]["Thingspeak"]["channelAPIkey"]
 
-def header():
+def header(userName):
     """
     Template header for the dashboard.
     """
     st.title("GlucoseIoT Dashboard")
-    st.write("This dashboard displays the glucose levels of the patient in real-time.")
-    st.write(f"Hello, patient number {patientList[0]['patientID']} !")
+    st.write(f"Hello, {userName} !" + " This dashboard displays your glucose levels, important metrics and time-series.")
+    st.badge("GlucoseIoT", icon="🩸", color="red")
 
-def read_json_from_thingspeak(userID):
+def read_json_from_thingspeak(patientID):
     """
     Read JSON data from the Thingspeak channel via REST API.
     Called on page refresh.
     """
-    channel_id = user_api_keys(userID)
+    channel_id = user_api_keys(patientID)
     url = f"{BASE_URL}/{channel_id}/feeds.json?api_key={THINGSPEAK_USER_API_KEY}&results={NUMBER_OF_ENTRIES_PER_REQUEST}"
     response = requests.get(url, timeout=5)  # Send GET request to the URL
     
@@ -68,25 +76,6 @@ def display_metrics(generatedReport):
     else:
         st.warning("No data available to display metrics.")
 
-def authenticate_user():
-    """
-    Handles user authentication using an access code.
-    WILL BE REDONE LATER
-    """
-    if "authenticated" not in st.session_state:
-        st.session_state.authenticated = False
-        
-    if not st.session_state.authenticated:
-        code_input = st.text_input("Enter access code", type="password")
-        if st.button("Login"):
-            if code_input == ACCESS_CODE:
-                st.session_state.authenticated = True
-                st.success("Access granted")
-                st.rerun()  # Forces a rerun with the new session state
-            else:
-                st.error("Invalid access code")
-        st.stop()  # Prevents rest of the app from rendering
-
 
 def display_plot():
     """
@@ -111,12 +100,35 @@ def display_plot():
         df["temperature"] = df["temperature"] + 0.1
         df["humidity"] = df["humidity"] + 0.2
         plot_placeholder.line_chart(data=df, x_label="time")
-    else:
-        st.write("Click the button to refresh the plot.")
 
+def main_dash(patientID = 0, authenticator = None):
+    """
+    Main function to run the dashboard.
+    """
+    userName = st.session_state['username']
+    #patientID = username_to_id(userName)  # Convert username to patient ID
+
+    authenticator.logout_button() 
+    authenticator.reset_password_button() 
+    header(userName)
+    display_metrics({"glucose": 122, "age": 25})
+    display_plot() 
+
+def username_to_id(userName):
+    """
+    Convert username to patient ID.
+    """
+    for patient in patientList:
+        if patient['userName'] == userName:
+            return patient['patientID']
+    st.error("User not found in the catalog.")
+    return None
 
 if __name__ == "__main__":
-    authenticate_user()  # Encapsulated authentication logic
-    header()
-    display_metrics({"glucose": 122, "age": 25})
-    display_plot()  # Encapsulated plotting logic
+    st.set_page_config(page_title="Dashboard", layout="wide")
+    authenticator = GlucoseIoTAuth("config.yaml")
+    authenticator.login_feature() 
+    if not st.session_state.get('authentication_status'):
+        st.stop()  # Stop execution if not authenticated
+
+    main_dash(authenticator= authenticator)  # Run the main dashboard function

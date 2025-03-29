@@ -96,6 +96,7 @@
     {
       "userID": 1,
       "patientID": 1,
+      "userName": "gooner",
       "serviceDetails":{
         "Thingspeak": {
           "channelID" : "123456",
