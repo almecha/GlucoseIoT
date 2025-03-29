@@ -1,0 +1,47 @@
+cookie:
+  expiry_days: 1
+  key: NUHA
+  name: nurzhan_cookie
+credentials:
+  usernames:
+    gooner:
+      email: efef@gmail.com
+      failed_login_attempts: 0
+      first_name: effe
+      last_name: efefef
+      logged_in: true
+      password: $2b$12$aJN1oLUgrxs2f1qAUC51YOqYB27/5b0jBYynYafRz/E5OzxJ3P.7S
+      roles: null
+    jsmith:
+      email: jsmith@gmail.com
+      failed_login_attempts: 1
+      first_name: John
+      last_name: Smith
+      logged_in: true
+      password: $2b$12$9RTSvnz3GQKTpfVfWWXTAOa.D1OLiBCNSQSboEzDcuHrOJZ7/vkY.
+      roles:
+      - admin
+      - editor
+      - viewer
+    luka:
+      email: luke@gmail.com
+      failed_login_attempts: 0
+      first_name: Luka
+      last_name: Maksimovic
+      logged_in: true
+      password: $2b$12$qWFZ2tPwc0VHF5qFMbsHOeiPADzuSY4e9rwzDAyPhBAHuuDTyAbR2
+      roles: null
+    nuha:
+      email: nuha@gmail.com
+      failed_login_attempts: 0
+      first_name: Nurzhan
+      last_name: Aitaliyev
+      logged_in: true
+      password: $2b$12$cU4hkJD6WXkt005a/1LcpeAIXmVu/y9f72MUVUEyg1OZpCZaKMs3K
+    rbriggs:
+      email: rbriggs@gmail.com
+      failed_login_attempts: 0
+      first_name: Rebecca
+      last_name: Briggs
+      logged_in: false
+      password: $2b$12$BYULCv.93t8jYbkgSBjCieBckKMQ3F.8U.BzT0WxKsD8ipXvqbs2y
