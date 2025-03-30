@@ -77,9 +77,9 @@ class Catalog:
             print("Bad request")
         
     def POST(self,*uri, **params):
-        #body = cherrypy.request.body.read()
-        #body = json.loads(body)
-        #body["insert-timestamp"] = time.time()
+        body = cherrypy.request.body.read()
+        body = json.loads(body)
+        timestamp = time.time()
         if uri[0] == "devices":                                         #2
             #self.catalog["devicesList"].append(body)
             new_device = {
@@ -118,6 +118,70 @@ class Catalog:
             return json.dumps({"error": "Device not found"}), 404
         else:
             return json.dumps({"error": "Bad request"}), 400
+        
+    # ---------------------------------------------------------------------------------- data validation
+    def validate_service(data):
+        """Valida que los datos de un servicio sean correctos"""
+        required_fields = {
+            "serviceID": str,
+            "REST_endpoint": str,
+            "MQTT_sub": list,
+            "MQTT_pub": list,
+            "timestamp": str
+        }
+        return validate_data(data, required_fields)
+
+
+    def validate_device(data):
+        """Valida que los datos de un dispositivo sean correctos"""
+        required_fields = {
+            "deviceID": int,
+            "deviceName": str,
+            "measureType": list,
+            "availableServices": list,
+            "servicesDetails": list,
+            "lastUpdate": str
+        }
+        return validate_data(data, required_fields)
+
+
+    def validate_user(data):
+        """Valida que los datos de un usuario sean correctos"""
+        required_fields = {
+            "userID": int,
+            "userName": str,
+            "role": str
+        }
+        
+        if not validate_data(data, required_fields):
+            return False
+        
+        # Validaciones adicionales para "Patient"
+        if data["role"] == "Patient":
+            if "connected_devices" not in data or not isinstance(data["connected_devices"], list):
+                return False
+            if "patient_information" not in data or not isinstance(data["patient_information"], dict):
+                return False
+            if "threshold_parameters" not in data or not isinstance(data["threshold_parameters"], dict):
+                return False
+
+        return True
+
+
+    def validate_data(data, required_fields):
+        """Valida si los datos contienen los campos requeridos con los tipos correctos"""
+        if not isinstance(data, dict):
+            return False
+
+        for field, field_type in required_fields.items():
+            if field not in data or not isinstance(data[field], field_type):
+                return False
+
+        return True
+
+    # ----------------------------------------------------------------------------------
+    
+    
     
     def save_catalog(self):
         with open('service_catalog.json', 'w') as f:

@@ -36,7 +36,7 @@ PUT /devices/{deviceID} → Update device info.
 DELETE /devices/{deviceID} → Remove inactive devices.
 
 Configuration
-GET /config → Retrieve system settings : 
+GET /config → Retrieve system settings :         done
     Catalog_url (service base URL)
     broker (MQTT broker IP & port)
     project_name, projectOwners, lastUpdate
