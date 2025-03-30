@@ -3,37 +3,38 @@
 Users
 GET /users → List all users. done
 
-GET /users/patients | /doctors → Filter by role. done
+GET /users?role=Patient    → Filter by role. done
+    /users?role=Doctor
 
 GET /users/{userID} → Retrieve user details. done
 
-POST /users → Register a new user.
+POST /users → Register a new user. done
 
-PUT /users/{userID} → Update user info.
+PUT /users/{userID} → Update user info. done
 
-DELETE /users/{userID} → Remove user.
+DELETE /users/{userID} → Remove user. done
 
 Services
 GET /services → List all services. done
 
 GET /services/{serviceID} → Get service details. done
 
-POST /services → Register a new service.
+POST /services → Register a new service. done
 
-PUT /services/{serviceID} → Update service info.
+PUT /services/{serviceID} → Update service info. done
 
-DELETE /services/{serviceID} → Remove service.
+DELETE /services/{serviceID} → Remove service. done
 
 Devices
 GET /devices → List all devices. done
 
 GET /devices/{deviceID} → Get device details. done
 
-POST /devices → Register a new device.
+POST /devices → Register a new device. done
 
-PUT /devices/{deviceID} → Update device info.
+PUT /devices/{deviceID} → Update device info. done
 
-DELETE /devices/{deviceID} → Remove inactive devices.
+DELETE /devices/{deviceID} → Remove inactive devices. done
 
 Configuration
 GET /config → Retrieve system settings :         done
@@ -47,4 +48,4 @@ GET /broker → Retrieve MQTT info. done
         "port": 1883
     }
 
-PUT /broker → Update broker info.
+PUT /broker → Update broker info. done

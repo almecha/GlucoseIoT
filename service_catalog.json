@@ -11,7 +11,6 @@
     "broker": {
         "IP": "test.mosquitto.org",
         "port": 1883
-        
     },
     "servicesList":[
         {
@@ -156,13 +155,15 @@
                     "amount": 222
                 },
                 "lastUpdate": "2025-03-19 10:50:10"
-            }
+            },
+            "timestamp":""
         },
         {
             "userName": "Doctor B",
             "userID": 2,
             "role": "Doctor",
-            "chatID": 222222
+            "chatID": 222222,
+            "timestamp":""
         }
     ]
 }
