@@ -45,12 +45,6 @@ class ThresholdAnalyzer:
             return None
 
 
-    def get_sensitivity(self):
-        sensitivity_factor = 50 # this factor needs to take into consideration many factors,
-        # including the type of insulin that the patient takes (normal/rapid acting)
-        return sensitivity_factor
-
-
     def calculate_insulin_dose(self, current_glycemia, target, insulin_resistance, fasting):
         sensitivity_factor = 30
         if insulin_resistance == 1: # if the patient is insulin resistant
