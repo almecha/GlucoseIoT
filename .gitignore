@@ -1,0 +1,19 @@
+# Virtual environment directories
+venv/
+env/
+ENV/
+.venv/
+.ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment files
+bin/
+lib/
+lib64/
+pyvenv.cfg
+include/
+share/
