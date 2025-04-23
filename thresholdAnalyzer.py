@@ -45,15 +45,13 @@ class ThresholdAnalyzer:
             return None
 
 
-    def calculate_insulin_dose(self, current_glycemia, target, insulin_resistance, fasting):
+    def calculate_insulin_dose(self, current_glycemia, target, insulin_resistance):
         sensitivity_factor = 30
         if insulin_resistance == 1: # if the patient is insulin resistant
             sensitivity_factor /= 2
         elif insulin_resistance == 2: # if the patient is insulin sensitive
             sensitivity_factor *= 2
         dose = (current_glycemia - target) / sensitivity_factor
-        if not fasting:
-            dose /= 2
         return max((round(dose) * 2) / 2, 0) # round the dose to the nearest .5 (it can't be negative)
 
 
@@ -101,7 +99,7 @@ class ThresholdAnalyzer:
                 logging.error("Message payload missing required fields ('glucose' or 'device_id').")
                 return
 
-            # Retrieve patient details from the Thingspeak service.
+            # Retrieve patient details as a JSON file from the Thingspeak service.
             patient_info = self.get_patient_info(device_id)
             if patient_info is None:
                 logging.error("Failed to retrieve patient info; cannot process message.")
@@ -113,7 +111,7 @@ class ThresholdAnalyzer:
             extreme_low = patient_info.get("extreme_low", 54) # require immediate action
             fasting_threshold = patient_info.get("fasting_threshold", 130)
             after_eating = patient_info.get("after_eating_threshold", 180) # for 2 hours after eating
-            sever_hyperglycemia = patient_info.get("sever_hyperglycemia_threshold", 240)
+            severe_hyperglycemia = patient_info.get("severe_hyperglycemia_threshold", 240) # immediate action
             patient_meals = patient_info.get("meals") # list of ordered timestamps
             insulin_resistence = patient_info.get("insulin_resistence", 0) # 0 is normal, 1 is insulin resistant,
             # while 2 is for patients that are insulin sensitive
@@ -122,8 +120,11 @@ class ThresholdAnalyzer:
             # Analyze the glucose value and decide on the action.
             response = {}
             if glucose >= fasting_threshold: # high glycemia
-                fasting = self.check_fasting(patient_meals[-1])
-                insulin_dose = self.calculate_insulin_dose(glucose, target_glycemia, insulin_resistence, fasting)
+                if glucose >= severe_hyperglycemia:
+                    response["message"] = (f"Your blood glucose level is dangerously high. "
+                                           f"Please, take your insulin dose and, then,contact your doctor.\n")
+                fasting = self.check_fasting(patient_meals[-1]) # checks the latest timestamp
+                insulin_dose = self.calculate_insulin_dose(glucose, target_glycemia, insulin_resistence)
                 response["action"] = "administer_insulin"
                 response["suggested_insulin_dose"] = insulin_dose
                 response["message"] = f"High glucose ({glucose} mg/mL).\n"
@@ -132,18 +133,20 @@ class ThresholdAnalyzer:
                                             f"Otherwise, if you actually have eaten, take half of the recommended dose: {0.5*insulin_dose:.1f} unit/-s.")
                 else:
                     response["message"] += (f"According to the database you have eaten in the last 2 hours.\n"
-                                            f"Therefore, the recommended insulin dose is: {insulin_dose:.1f} unit/-s.\n"
+                                            f"Therefore, the recommended insulin dose is: {0.5*insulin_dose:.1f} unit/-s.\n"
                                             f"If that is not the case and you have not, in fact, eaten in the last 2 hours,\n"
-                                            f"take double of the recommended dose: {2*insulin_dose:.1f} unit/-s.")
-            elif extreme_low < glucose <= low_threshold: # low glycemia
-                response["action"] = "eat_food"
-                response["message"] = f"Low glucose ({glucose} mg/mL). Please, have a snack to raise your blood sugar."
-            elif glucose <= extreme_low:
+                                            f"take double of the recommended dose: {insulin_dose:.1f} unit/-s.")
+
+            elif glucose <= extreme_low: # extremely low glycemia
                 response["action"] = "contact_doctor"
                 response["message"] = (f"Extremely low glucose ({glucose} mg/mL). You should immediately eat something "
                                        f"and call either your doctor or the emergency services.")
-            else:
-                # Glucose level is within acceptable range: no action needed.
+
+            elif extreme_low < glucose <= low_threshold:  # low glycemia
+                response["action"] = "eat_food"
+                response["message"] = f"Low glucose ({glucose} mg/mL). Please, have a snack to raise your blood sugar."
+
+            else: # Glucose level is within acceptable range: no action needed.
                 response["action"] = "none"
                 response["message"] = f"Glucose level is normal ({glucose} mg/mL). No intervention required."
 
