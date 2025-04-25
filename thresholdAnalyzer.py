@@ -22,10 +22,15 @@ class ThresholdAnalyzer:
 
         # Extract Thingspeak endpoint
         service = next((serviceID for serviceID in self.catalog["servicesList"] if serviceID=='ThingspeakAdaptor'), None)
-        self.thingspeak_base = service["REST_endpoint"]
+        self.thingspeak_base = service["REST_endpoint"] + "/"
 
         # retrieve the endpoint for the patients' data
         self.patient_endpoint = 'patients/'
+
+        # Create the MQTT client and assign callbacks.
+        self.client = mqtt.Client()
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
 
 
     # Retrieve patient information from the Thingspeak service
@@ -45,14 +50,15 @@ class ThresholdAnalyzer:
             return None
 
 
-    def calculate_insulin_dose(self, current_glycemia, target, insulin_resistance):
+    def calculate_insulin_dose(self, current_glycemia, target, insulin_resistence):
         sensitivity_factor = 30
-        if insulin_resistance == 1: # if the patient is insulin resistant
+        if insulin_resistence == 1: # if the patient is insulin resistant
             sensitivity_factor /= 2
-        elif insulin_resistance == 2: # if the patient is insulin sensitive
+        elif insulin_resistence == 2: # if the patient is insulin sensitive
             sensitivity_factor *= 2
         dose = (current_glycemia - target) / sensitivity_factor
-        return max((round(dose) * 2) / 2, 0) # round the dose to the nearest .5 (it can't be negative)
+        dose = round(dose * 2) / 2
+        return max(dose, 0) # round the dose to the nearest .5 (it can't be negative)
 
 
     def check_fasting(self,last_meal_timestamp):
@@ -78,7 +84,7 @@ class ThresholdAnalyzer:
             client.subscribe(self.topic_glucose)
             logging.info(f"Subscribed to topic: {self.topic_glucose}")
         else:
-            logging.error("Failed to connect to MQTT broker, return code: %d", rc)
+            logging.error(f"Failed to connect to MQTT broker, return code: {rc:,}")
 
 
     def on_message(self, client, userdata, msg): # callback for a received PUBLISH message
@@ -110,7 +116,6 @@ class ThresholdAnalyzer:
             low_threshold = patient_info.get("low_threshold", 80)
             extreme_low = patient_info.get("extreme_low", 54) # require immediate action
             fasting_threshold = patient_info.get("fasting_threshold", 130)
-            after_eating = patient_info.get("after_eating_threshold", 180) # for 2 hours after eating
             severe_hyperglycemia = patient_info.get("severe_hyperglycemia_threshold", 240) # immediate action
             patient_meals = patient_info.get("meals") # list of ordered timestamps
             insulin_resistence = patient_info.get("insulin_resistence", 0) # 0 is normal, 1 is insulin resistant,
@@ -120,31 +125,36 @@ class ThresholdAnalyzer:
             # Analyze the glucose value and decide on the action.
             response = {}
             if glucose >= fasting_threshold: # high glycemia
+                response["message"] = ""
                 if glucose >= severe_hyperglycemia:
-                    response["message"] = (f"Your blood glucose level is dangerously high. "
-                                           f"Please, take your insulin dose and, then,contact your doctor.\n")
-                fasting = self.check_fasting(patient_meals[-1]) # checks the latest timestamp
+                    response["message"] += (f"Your blood glucose level is dangerously high. "
+                                           f"Please, take your insulin dose and, then, contact your doctor.\n")
+                if len(patient_meals) != 0:
+                    fasting = self.check_fasting(patient_meals[-1]) # checks the latest timestamp to see if the patient
+                    # has eaten in the previous 2 hours
+                else:
+                    fasting = True
                 insulin_dose = self.calculate_insulin_dose(glucose, target_glycemia, insulin_resistence)
                 response["action"] = "administer_insulin"
                 response["suggested_insulin_dose"] = insulin_dose
-                response["message"] = f"High glucose ({glucose} mg/mL).\n"
+                response["message"] += f"High glucose: ({glucose} mg/mL).\n"
                 if fasting:
                     response["message"] += (f"Unless you have eaten in the last 2 hours, the recommended insulin dose is: {insulin_dose:.1f} unit/-s.\n"
-                                            f"Otherwise, if you actually have eaten, take half of the recommended dose: {0.5*insulin_dose:.1f} unit/-s.")
+                                            f"Otherwise, if you actually have eaten, take half of the recommended dose: {0.5*insulin_dose:.1f} unit/-s.\n")
                 else:
                     response["message"] += (f"According to the database you have eaten in the last 2 hours.\n"
                                             f"Therefore, the recommended insulin dose is: {0.5*insulin_dose:.1f} unit/-s.\n"
                                             f"If that is not the case and you have not, in fact, eaten in the last 2 hours,\n"
-                                            f"take double of the recommended dose: {insulin_dose:.1f} unit/-s.")
+                                            f"take double of the recommended dose: {insulin_dose:.1f} unit/-s.\n")
 
             elif glucose <= extreme_low: # extremely low glycemia
-                response["action"] = "contact_doctor"
-                response["message"] = (f"Extremely low glucose ({glucose} mg/mL). You should immediately eat something "
+                response["immediate_action"] = "contact_doctor"
+                response["message"] = (f"Extremely low glucose: ({glucose} mg/mL). You should immediately eat something "
                                        f"and call either your doctor or the emergency services.")
 
             elif extreme_low < glucose <= low_threshold:  # low glycemia
                 response["action"] = "eat_food"
-                response["message"] = f"Low glucose ({glucose} mg/mL). Please, have a snack to raise your blood sugar."
+                response["message"] = f"Low glucose: ({glucose} mg/mL). Please, have a snack to raise your blood sugar."
 
             else: # Glucose level is within acceptable range: no action needed.
                 response["action"] = "none"
@@ -172,13 +182,6 @@ class ThresholdAnalyzer:
         except Exception as e:
             logging.error(f"Error publishing response: {e}")
 
-
-    # Create the MQTT client and assign callbacks.
-    client = mqtt.Client()
-    client.on_connect = on_connect
-    client.on_message = on_message
-
-
     def main(self):
         try: # attempt to connect to the broker
             logging.info(f"Connecting to MQTT broker at {self.mqtt_broker}:{self.mqtt_port}...")
@@ -189,4 +192,5 @@ class ThresholdAnalyzer:
 
 
 if __name__ == "__main__":
-    analyzer = ThresholdAnalyzer('service_catalog.json')
+    catalog = 'service_catalog.json'
+    analyzer = ThresholdAnalyzer(catalog)
