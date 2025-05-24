@@ -3,8 +3,6 @@
 venv/
 .venv/
 dashboard/
-thingspeak_adaptor/
-
 # In case the environment is located at the project root (bin/, lib/, include/, etc/, share/, pyvenv.cfg)
 bin/
 lib/
