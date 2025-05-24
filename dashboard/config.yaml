@@ -31,6 +31,15 @@ credentials:
       logged_in: true
       password: $2b$12$qWFZ2tPwc0VHF5qFMbsHOeiPADzuSY4e9rwzDAyPhBAHuuDTyAbR2
       roles: null
+    lukaluka:
+      email: lukaluka@gmail.com
+      failed_login_attempts: 0
+      first_name: luka
+      last_name: makss
+      logged_in: true
+      password: $2b$12$VOMeQyL51budVfAa26MZ..zWDZLZAesOiTSX/7kAzkMBb0xUZmBHC
+      password_hint: Luka1234!
+      roles: null
     nuha:
       email: nuha@gmail.com
       failed_login_attempts: 0
