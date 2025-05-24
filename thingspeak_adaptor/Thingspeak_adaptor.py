@@ -4,8 +4,9 @@ from MyMQTT import *
 import random
 import time
 import uuid
+import cherrypy
 
-class Thingspeak_Adaptor:
+class Thingspeak_MQTT_Worker:
     def __init__(self,settings):
         self.settings = settings
         #self.catalogURL=settings['catalogURL']
@@ -57,9 +58,30 @@ class Thingspeak_Adaptor:
         r=requests.get(urlToSend)
         print(r.text)
 
+class Thingspeak_REST_Worker(object):
+    exposed = True
+    def __init__(self):
+        pass
+    def GET(self, *args, **kwargs):
+        if len(args) == 0:
+            return "No arguments provided"
+        elif args[0] == "upload":
+            # Example: /upload?field1=10&field2=20
+            field1 = kwargs.get('field1', None)
+            field2 = kwargs.get('field2', None)
+            if field1 is not None and field2 is not None:
+                # Here you would handle the upload logic
+                return f"Data uploaded: field1={field1}, field2={field2}"
+            else:
+                return "Missing fields in request"
+        else:
+            return "Unknown endpoint"
+
+
+
 if __name__ == "__main__":
     settings= json.load(open('thingspeak_adaptor/settings.json'))
-    ts_adaptor=Thingspeak_Adaptor(settings)
+    ts_adaptor=Thingspeak_MQTT_Worker(settings)
     #ts_adaptor.registerService()
     try:
         counter=0
