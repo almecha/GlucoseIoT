@@ -1,0 +1,14 @@
+{
+    "catalogURL": "",
+    "ThingspeakURL": "https://api.thingspeak.com/update?api_key=",
+    "ChannelWriteAPIkey": "S2388HMXKVKG6PI3",
+    "ChannelReadAPIKey": "2YN0JR2LKQFAV3BI",
+    "brokerIP": "mqtt.eclipseprojects.io",
+    "brokerPort": 1883,
+    "mqttTopic":"glucosiot/sensors/glucose_sensor",
+    "serviceInfo": {
+        "ID": 3,
+        "serviceName": "ThingspeakAdaptor",
+        "last_updated": ""
+    }
+}
