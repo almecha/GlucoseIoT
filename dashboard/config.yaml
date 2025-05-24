@@ -38,6 +38,15 @@ credentials:
       last_name: Aitaliyev
       logged_in: true
       password: $2b$12$cU4hkJD6WXkt005a/1LcpeAIXmVu/y9f72MUVUEyg1OZpCZaKMs3K
+    nuhich:
+      email: nuhnuhich@mail.com
+      failed_login_attempts: 0
+      first_name: nuha
+      last_name: nuhich
+      logged_in: true
+      password: $2b$12$h.u40nAtTNsgUn5Pd7XhoOPTSXIdbXnvQ6vo3oALgeJLXayKAZ7Oa
+      password_hint: 1234Nuha!
+      roles: null
     rbriggs:
       email: rbriggs@gmail.com
       failed_login_attempts: 0
