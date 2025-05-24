@@ -29,7 +29,7 @@ class RaspberryPIPublisher:
         print("Publishing:", message_to_publish)
         self.simplePublisherClient.myPublish(
             self.topic_publish, 
-            json.dumps(message_to_publish, separators=(",", ":"))
+            message_to_publish #separators=(",", ":"))
         )
 
 if __name__ == "__main__":
@@ -61,7 +61,7 @@ if __name__ == "__main__":
             }
 
             client_simplepub.publish(message_to_send)
-            time.sleep(10)  # Adjust frequency as needed
+            time.sleep(5)  # Adjust frequency as needed
 
     except KeyboardInterrupt:
         print("\nStopping publisher...")
