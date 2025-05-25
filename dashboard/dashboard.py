@@ -22,8 +22,9 @@ from auth import GlucoseIoTAuth
 catalog = json.load(open('../catalog.json', encoding='utf-8'))
 patientList = catalog["patientsList"]
 
-NUMBER_OF_ENTRIES_PER_REQUEST = 100
-THINGSPEAK_USER_API_KEY = "TO BE DONE LATER"
+NUMBER_OF_ENTRIES_PER_REQUEST = 5
+USER_CHANNEL_ID = "2971820"
+READ_API_KEY = "2YN0JR2LKQFAV3BI"
 BASE_URL = "https://api.thingspeak.com/channels"
 ACCESS_CODE = "1234"
 
@@ -45,13 +46,13 @@ def header(userName):
     st.write(f"Hello, {userName} !" + " This dashboard displays your glucose levels, important metrics and time-series.")
     st.badge("GlucoseIoT", icon="🩸", color="red")
 
-def read_json_from_thingspeak(patientID):
+def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER_REQUEST):
     """
     Read JSON data from the Thingspeak channel via REST API.
     Called on page refresh.
     """
-    channel_id = user_api_keys(patientID)
-    url = f"{BASE_URL}/{channel_id}/feeds.json?api_key={THINGSPEAK_USER_API_KEY}&results={NUMBER_OF_ENTRIES_PER_REQUEST}"
+    #channel_id = user_api_keys(patientID)
+    url = f"{BASE_URL}/{USER_CHANNEL_ID}/fields/1.json?api_key={READ_API_KEY}&results={number_of_entries}"
     response = requests.get(url, timeout=5)  # Send GET request to the URL
     
     if response.status_code == 200:
@@ -83,23 +84,17 @@ def display_plot():
     WILL BE REDONE LATER WITH THINGSPEAK DATA
     """
     plot_placeholder = st.empty()
-    df = pd.DataFrame({
-        "temperature": [22.4, 22.7, 22.5],
-        "humidity": [45, 46, 44]
-    }, index=pd.to_datetime([
-        "2025-03-28T10:00:00",
-        "2025-03-28T10:01:00",
-        "2025-03-28T10:02:00"
-    ]))  # Create a DataFrame with dummy data
-
-    plot_placeholder.line_chart(data=df, x_label="time")  # Display line chart with the DataFrame
+    df = read_json_from_thingspeak(0)  # Fetch data from Thingspeak channel
+    df['field1'] = pd.to_numeric(df['field1'], errors='coerce')  # Convert field1 to numeric
+    plot_placeholder.line_chart(data = df,x ='created_at',y = "field1", x_label="time")  # Display line chart with the DataFrame
 
     if st.button("Refresh Plot"):
         plot_placeholder.empty()
         st.write("Refreshing plot...")
-        df["temperature"] = df["temperature"] + 0.1
-        df["humidity"] = df["humidity"] + 0.2
-        plot_placeholder.line_chart(data=df, x_label="time")
+        df = read_json_from_thingspeak(0)
+        df['field1'] = pd.to_numeric(df['field1'], errors='coerce')  # Convert field1 to numeric
+        #df['created_at'] = pd.to_datetime(df['created_at'])
+        plot_placeholder.line_chart(data = df,x ='created_at',y = "field1", x_label="time")
 
 def main_dash(patientID = 0, authenticator = None):
     """
@@ -111,7 +106,10 @@ def main_dash(patientID = 0, authenticator = None):
     authenticator.logout_button() 
     authenticator.reset_password_button() 
     header(userName)
-    display_metrics({"glucose": 122, "age": 25})
+
+    last_glucose_level = read_json_from_thingspeak(0,1)["field1"][0]  # Fetch data from Thingspeak channel
+    display_metrics({"glucose": float(last_glucose_level), "age": 25})
+
     display_plot() 
 
 def username_to_id(userName):
