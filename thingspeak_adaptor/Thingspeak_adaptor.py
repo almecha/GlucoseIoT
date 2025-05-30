@@ -23,11 +23,13 @@ class Thingspeak_MQTT_Worker:
     
     def notify(self,topic,payload):
         #{'bn':f'SensorREST_MQTT_{self.deviceID}','e':[{'n':'humidity','v':'', 't':'','u':'%'}]}
+        print(f"Received message on topic {topic}: {payload}")
         message_decoded=json.loads(payload)
-        message_value=message_decoded["e"][0]['v']
-        decide_measurement=message_decoded["e"][0]["n"]
+        print(f"Received message on topic {topic}: {type(message_decoded)}")
+        message_value=message_decoded['e'][0]['v']
+        decide_measurement=message_decoded['e'][0]['n']
         error=False
-        if decide_measurement=="glucose_level":
+        if decide_measurement=="blood_glucose":
             print("\n \n Glucose Message")
             field_number=1
         else: 

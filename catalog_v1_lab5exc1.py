@@ -1,4 +1,5 @@
-'''Lab 5 exc 1'''
+# CATALOG SERVICE
+
 import cherrypy
 import json
 from datetime import datetime,timedelta
@@ -11,36 +12,67 @@ class Catalog:
             self.catalog = json.load(f)
             
     def GET(self, *uri, **params):
-        if uri[0] == "broker" or "IP":                                  #1
+        if uri[0] == "broker":                                          # broker IP & port
             response = self.catalog["broker"]
             print(response)
             return json.dumps(response)
-        elif uri[0] == "alldevices":                                    #4
+        elif uri[0] == "services":                                    
+            response = self.catalog["servicesList"]                     # if there are no parameters, returns list of all services
+            serviceID = params.get("serviceID")
+            found = False
+            if serviceID:                                               # If a service ID is provided, search for it
+                for service in response:
+                    if service["serviceID"] == serviceID:   
+                        response = service
+                        found = True
+                        break
+                if not found:
+                    print(f"No services found for {serviceID}.")
+            print(response)
+            return json.dumps(response)
+        elif uri[0] == "devices":                                      # devices
             response = self.catalog["devicesList"]
+            deviceID = params.get("deviceID")
+            found = False
+            if deviceID: 
+                for device in response:
+                    if deviceID == device["deviceID"]:
+                        response= device
+                        found = True
+                if not found:
+                    print(f"No devices found for {deviceID}.")
             print(response)
             return json.dumps(response)
-        elif uri[0] == "deviceID":                                      #5 
+        elif uri[0] == "users":                                        #users
+            response = self.catalog["usersList"] # returns all users
+            userID = params.get("userID")
             found = False
-            device_ID = params[0]["deviceID"]
-            for device in self.catalog["devicesList"]:
-                if device_ID == device["deviceID"]:
-                    response= device
-                    found = True
-            if not found:
-                print(f"No devices found for {device_ID}.")
-            print(response)
+            if userID: # if userID is passed as a parameter, it looks for that user in the list
+                for user in response:
+                    if userID == user["userID"]:
+                        response = user
+                        found = True
+                if not found:
+                    print(f"No users found for {userID}.")
+            patients_list = [user for user in response if user.get("role") == "Patient"]
+            doctors_list = [user for user in response if user.get("role") == "Doctor"]
+            if len(uri) > 1: # filtering by patients or doctors
+                if uri[1] == "patients":
+                    response = patients_list
+                if uri[1] == "doctors":
+                    response = doctors_list
+            print(response) # if no filters/parameters are applied, returns all users
             return json.dumps(response)
-        elif uri[0] == "userID":                                        #8
-            found = False
-            user_ID = params[0]["userID"]
-            for user in self.catalog["usersList"]:
-                if user_ID == user["userID"]:
-                    response= user
-                    found = True
-            if not found:
-                print(f"No users found for {user_ID}.")
+        elif uri[0] == "config":                                    # config
+            response = {
+                "Catalog_url": self.catalog["Catalog_url"],
+                "broker": self.catalog["broker"],
+                "projectOwners": self.catalog["projectOwners"],
+                "project_name": self.catalog["project_name"],
+                "lastUpdate": self.catalog["lastUpdate"]                
+                }    
             print(response)
-            return json.dumps(response)        
+            return json.dumps(response)     
         else:
             print("Bad request")
         
@@ -88,7 +120,7 @@ class Catalog:
             return json.dumps({"error": "Bad request"}), 400
     
     def save_catalog(self):
-        with open('catalog.json', 'w') as f:
+        with open('service_catalog.json', 'w') as f:
                 json.dump(self.catalog, f, indent=4)
                 
     def remove_old_devices(self):

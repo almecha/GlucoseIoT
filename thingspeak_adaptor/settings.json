@@ -7,7 +7,7 @@
     "ChannelReadAPIKey": "2YN0JR2LKQFAV3BI",
     "brokerIP": "mqtt.eclipseprojects.io",
     "brokerPort": 1883,
-    "mqttTopic":"glucosiot/sensors/glucose_sensor",
+    "mqttTopic":"GlucosIoT/sensor",
     "serviceInfo": {
         "ID": 3,
         "serviceName": "ThingspeakAdaptor",
