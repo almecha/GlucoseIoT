@@ -9,26 +9,14 @@ import cherrypy
 class Thingspeak_MQTT_Worker:
     def __init__(self,settings):
         self.settings = settings
-        #self.catalogURL=settings['catalogURL']
-        self.serviceInfo=settings['serviceInfo']
-        self.baseURL=self.settings["ThingspeakURL"]
+        self.baseURL=self.settings["ThingspeakWriteURL"]
         self.channelWriteAPIkey=self.settings["ChannelWriteAPIkey"]
-        self.channelReadAPIkey=self.settings["ChannelReadAPIKey"]
         self.broker=self.settings["brokerIP"]
         self.port=self.settings["brokerPort"]
         self.topic=self.settings["mqttTopic"]+"/#"
         self.mqttClient = MyMQTT(clientID="nuha", broker=self.broker, port=self.port, notifier=self) #uuid is to generate a random string for the client id
         self.mqttClient.start()
-        self.mqttClient.mySubscribe(self.topic)
-        self.actualTime = time.time()
-    
-    def registerService(self):
-        self.serviceInfo['last_update']=self.actualTime
-        requests.post(f'{self.catalogURL}/services',data=json.dumps(self.serviceInfo))
-    
-    def updateService(self):
-        self.serviceInfo['last_update']=self.actualTime
-        requests.put(f'{self.catalogURL}/services',data=json.dumps(self.serviceInfo))
+        self.mqttClient.mySubscribe(self.topic)    
 
     def stop(self):
         self.mqttClient.stop()
@@ -60,30 +48,95 @@ class Thingspeak_MQTT_Worker:
         r=requests.get(urlToSend)
         print(r.text)
 
+@cherrypy.expose
 class Thingspeak_REST_Worker(object):
-    exposed = True
-    def __init__(self):
-        pass
-    def GET(self, *args, **kwargs):
-        if len(args) == 0:
+    def __init__(self,settings):
+        #https://api.thingspeak.com/channels/2971820/fields/1.json?api_key=2YN0JR2LKQFAV3BI&results=2
+        self.TA_adaptor_uri = settings['serviceInfo']['REST_endpoint']
+        self.baseURL=settings["ThingspeakReadURL"]
+        self.channelReadAPIkey=settings["ChannelReadAPIKey"]
+        self.channel_id = settings["ChannelID"]
+    
+    def GET(self, *uri, **params):
+        if len(uri) == 0:
             return "No arguments provided"
-        elif args[0] == "upload":
-            # Example: /upload?field1=10&field2=20
-            field1 = kwargs.get('field1', None)
-            field2 = kwargs.get('field2', None)
-            if field1 is not None and field2 is not None:
-                # Here you would handle the upload logic
-                return f"Data uploaded: field1={field1}, field2={field2}"
-            else:
-                return "Missing fields in request"
+        elif uri[0] ==  self.TA_adaptor_uri:
+            # Here you would implement the logic to retrieve data from Thingspeak
+            # For example, you could return a JSON response with the latest data
+            number_of_entries = int(params['number_of_entries']) if 'number_of_entries' in params else 5
+            data = self.read_json_from_thingspeak(number_of_entries)
+            return json.dumps(data)
         else:
             return "Unknown endpoint"
+        
 
+    def read_json_from_thingspeak(self, number_of_entries=5):
+        """
+        Read JSON data from the Thingspeak channel via REST API.
+        Called on page refresh.
+        """
+        #channel_id = user_api_keys(patientID)
+        url = f"{self.baseURL}/{self.channel_id}/fields/1.json?api_key={self.channelReadAPIkey}&results={number_of_entries}"
+        print(url)
+        response = requests.get(url, timeout=5)  # Send GET request to the URL
+        if response.status_code == 200:
+            try:
+                data = response.json()  # Parse the JSON response
+                return data
+            except json.JSONDecodeError:
+                print("Error decoding JSON response")
+                return None
+        else:
+            print(f"Error: {response.status_code} - {response.text}")
+        return None
 
+class Thingspeak_Adaptor(object):
+
+    def __init__(self, settings):
+        self.settings = settings
+        self.rest_worker = None
+        self.mqtt_worker = None
+        self.catalogURL=settings['catalogURL']
+        self.actualTime = time.time()
+        self.serviceInfo=settings['serviceInfo']
+
+    def start(self):
+        # Start the MQTT worker
+        self.mqtt_worker = Thingspeak_MQTT_Worker(self.settings)
+        # Start the REST worker
+        self.rest_worker = Thingspeak_REST_Worker(self.settings)
+        # Start the REST worker (CherryPy server)
+        #Standard configuration to serve the url "localhost:8080"
+        conf={
+        '/':{
+        'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
+        'tools.sessions.on':True
+        }
+        }
+        cherrypy.tree.mount(self.rest_worker,'/',conf)
+        cherrypy.config.update({'server.socket_port':8080})
+        cherrypy.engine.start()
+
+    def stop(self):
+        # Stop the MQTT worker
+        if self.mqtt_worker:
+            self.mqtt_worker.stop()
+        # Stop the REST worker (CherryPy server)
+        cherrypy.engine.exit()
+
+    def registerService(self):
+        self.serviceInfo['last_update']=self.actualTime
+        requests.post(f'{self.catalogURL}/services',data=json.dumps(self.serviceInfo))
+    
+    def updateService(self):
+        self.serviceInfo['last_update']=self.actualTime
+        requests.put(f'{self.catalogURL}/services',data=json.dumps(self.serviceInfo))
 
 if __name__ == "__main__":
-    settings= json.load(open('settings.json'))
-    ts_adaptor=Thingspeak_MQTT_Worker(settings)
+    settings= json.load(open('thingspeak_adaptor/settings.json'))
+    ts_adaptor=Thingspeak_Adaptor(settings)
+    ts_adaptor.start()
+    print("Thingspeak Adaptor Started")
     #ts_adaptor.registerService()
     try:
         counter=0
