@@ -9,14 +9,14 @@ import pandas as pd
     Store all the global constans (like basic urls, some constants like timeout time and etc.) in the catalog.json file.
 
 '''
-
+@cherrypy.expose
 class ReportsGenerator(object):
     def __init__(self, catalog_file_path):
         # self.catalog_file_path = catalog_file_path
         # self.catalog = json.load(open(self.catalog_file_path, encoding='utf-8'))
         # self.patientList = self.catalog["patientsList"]
         # self.serviceDetails = self.catalog["serviceDetails"]
-        self.base_url = "127.0.0.1:8080/retrieve"  # Base URL for the REST API
+        self.base_url = "http://127.0.0.1:8080/retrieve"  # Base URL for the REST API
         self.NUMBER_OF_ENTRIES_PER_REQUEST = 100
 
 
@@ -82,8 +82,7 @@ class ReportsGenerator(object):
         response = requests.get(
             f"{self.base_url}?number_of_entries={self.NUMBER_OF_ENTRIES_PER_REQUEST}",
         )
-        data = response.json()
-        data = json.loads(data)["feeds"]
+        data = response.json()["feeds"]
         # Check if the DataFrame is empty
         if data == None:
             return "No data available for the given patient ID."
@@ -113,7 +112,7 @@ class ReportsGenerator(object):
         elif uri[0] == "generate_report":
             # Return the report as a JSON response
             report = self.generate_report(int(params.get('patientID', 0)))
-            return json.dumps(report)
+            return report
         else:
             return "Unknown endpoint"
 
@@ -126,6 +125,6 @@ if __name__ == "__main__":
         }
         }
     cherrypy.tree.mount(web_service,'/',conf)
-    cherrypy.config.update({'server.socket_port':8080})
+    cherrypy.config.update({'server.socket_port':8090})
     cherrypy.engine.start()
     cherrypy.engine.block()

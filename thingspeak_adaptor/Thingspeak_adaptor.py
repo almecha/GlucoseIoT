@@ -133,7 +133,7 @@ class Thingspeak_Adaptor(object):
         requests.put(f'{self.catalogURL}/services',data=json.dumps(self.serviceInfo))
 
 if __name__ == "__main__":
-    settings= json.load(open('thingspeak_adaptor/settings.json'))
+    settings= json.load(open('settings.json'))
     ts_adaptor=Thingspeak_Adaptor(settings)
     ts_adaptor.start()
     print("Thingspeak Adaptor Started")
