@@ -1,0 +1,7 @@
+{
+  "telegram_token": "7952964708:AAE6Dz7MA90nk-3r9poZqJ6Vmnysgdo98jo",
+  "catalog_url": "http://catalog:9080/",
+  "thingspeak_url": "http://thingspeak_adaptor:9090/",
+  "port": 1883,
+  "brokerIP": "mqtt.eclipseprojects.io"
+}
