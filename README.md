@@ -1,5 +1,3 @@
-Our Smart Glucose Monitor system helps people with Type 1 Diabetes manage their blood sugar. These Telegram Bots are like the "front door" to that system, making it easy to:
-✨ What Can They Do?
 Patient's Bot: This bot is for the person managing their glucose levels. Get important messages and send information about their meals.
        - Talk to the System: You can send messages to our system directly from Telegram.
        - Get Alerts: The bot will tell you if your blood sugar is too high or too low, and even suggest how much insulin you might need.
