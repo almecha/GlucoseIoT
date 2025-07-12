@@ -1,0 +1,11 @@
+{
+    "catalogURL": "http://catalog:9080",
+    "brokerIP": "broker.hivemq.com",
+    "brokerPort": 1883,
+    "mqttTopic":"GlucosIoT/sensor",
+    "serviceInfo": {
+        "serviceID": "PatientTelegramBot",
+        "last_updated": "",
+        "telegram_token": "7895142588:AAE-MVHYehKJiQUV1zT_NE5X5Tcj7f1WMnc",
+    }
+}
