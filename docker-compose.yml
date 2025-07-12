@@ -1,0 +1,23 @@
+services:
+  # Servicio para el Catalog
+  catalog:
+    build: ./catalog_branch # Indica dónde encontrar el Dockerfile para el Catalog
+    ports:
+      - "9080:9080" # Mapea el puerto del contenedor (9080) al puerto de tu máquina local (9080)
+    volumes:
+      - ./catalog_branch/CATALOG.json:/app/CATALOG.json # Persistencia del JSON
+    networks:
+      - glucose_network # Asegura que esté en la misma red que los otros servicios
+
+  # Servicio para el Doctor's Telegram Bot
+  doctor_bot:
+    build: "./telegram_branch/Doctor's TelegramBot" # Indica dónde encontrar el Dockerfile para el bot
+    depends_on:
+      - catalog # Asegura que el Catalog se inicie antes que el bot
+    networks:
+      - glucose_network # Para que pueda comunicarse con el Catalog por su nombre 'catalog'
+
+# Definición de la red compartida para los servicios
+networks:
+  glucose_network:
+    driver: bridge
