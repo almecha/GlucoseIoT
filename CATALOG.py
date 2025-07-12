@@ -74,6 +74,9 @@ class Catalog:
         else:
             return json.dumps({"error": "Invalid request"}), 400 
         
+        
+        
+        
     def POST(self,*uri, **params):      # -------------------------     POST     -----------------------------
         body = cherrypy.request.body.read() #.decode("utf-8")  check if necessary
         body = json.loads(body)
@@ -201,7 +204,7 @@ class Catalog:
             "REST_endpoint": str,
             "MQTT_sub": list,
             "MQTT_pub": list,
-            "timestamp": str
+            #"timestamp": str # this will be done by the catalog itself
         }
         return validate_data(data, required_fields)
 
@@ -212,7 +215,7 @@ class Catalog:
             "measureType": list,
             "availableServices": list,
             "servicesDetails": list,
-            "lastUpdate": str
+            # "lastUpdate": str
         }
         return validate_data(data, required_fields)
 
@@ -266,3 +269,6 @@ if __name__ == "__main__":
     cherrypy.config.update({'server.socket_port': 9080})
     cherrypy.engine.start()
     cherrypy.engine.block()
+    
+    # cherrypy.response.data=201 200 400 404 - checkear para debug
+    # lock para q no se sobreescriba
