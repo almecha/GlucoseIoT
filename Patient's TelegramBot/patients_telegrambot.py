@@ -1,4 +1,3 @@
-# --- IMPORTS ---
 import json
 import requests
 import time
@@ -6,7 +5,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 
 # Import your custom MyMQTT class
-from MyMQTT import MyMQTT # <--- CHANGED: Import your wrapper
+from MyMQTT import MyMQTT
 
 class TelegramMQTTWorker:
     """
@@ -20,17 +19,15 @@ class TelegramMQTTWorker:
         self.client_id = client_id
         self.subscribe_topic = subscribe_topic
         self.publish_topic = publish_topic
-        # message_callback is still the callback to the main bot for Telegram messages
         self.message_callback = message_callback
 
         # Initialize MyMQTT instance
         # 'self' (this TelegramMQTTWorker instance) is passed as the notifier,
         # so MyMQTT will call this class's 'notify' method on incoming messages.
-        self.mqtt_client = MyMQTT(self.client_id, self.broker_ip, self.broker_port, self) # <--- CHANGED: Using MyMQTT
+        self.mqtt_client = MyMQTT(self.client_id, self.broker_ip, self.broker_port, self)
 
-    # --- MyMQTT's 'notifier' callback ---
-    # This method is called by MyMQTT.myOnMessageReceived when a message arrives.
-    async def notify(self, topic: str, msg_payload_bytes: bytes): # <--- CHANGED: Renamed from _on_message and signature adapted
+    # MyMQTT's 'notifier' callback: This method is called by MyMQTT.myOnMessageReceived
+    async def notify(self, topic: str, msg_payload_bytes: bytes):
         """
         Processes incoming MQTT messages (e.g., alerts from Threshold Analyzer).
         The message payload is expected to be a JSON string including 'patient_id'.
@@ -44,32 +41,31 @@ class TelegramMQTTWorker:
         else:
             print("MQTT Worker: No message_callback provided to send alert to Telegram.")
 
-    # Note: _on_connect is no longer needed here as MyMQTT handles its own connection callback.
-
     def start(self):
         try:
-            self.mqtt_client.start() # <--- CHANGED: Using MyMQTT's start method
-            self.mqtt_client.mySubscribe(self.subscribe_topic) # <--- CHANGED: Explicitly subscribe using MyMQTT's method
-            print("MQTT Worker: Attempting to connect and subscribe...")
+            self.mqtt_client.start()
+            self.mqtt_client.mySubscribe(self.subscribe_topic) # Subscribe to the specific patient's alert topic
+            print(f"MQTT Worker: Attempting to connect as '{self.client_id}' and subscribe to '{self.subscribe_topic}'...")
         except Exception as e:
             print(f"MQTT Worker: Could not connect to broker: {e}")
-            raise # Re-raise to indicate a critical startup failure
+            raise
 
     def stop(self):
-        if self.mqtt_client: # Added check just in case mqtt_client isn't initialized
-            self.mqtt_client.stop() # <--- CHANGED: Using MyMQTT's stop method
+        if self.mqtt_client:
+            self.mqtt_client.stop()
             print("MQTT Worker: Client stopped.")
 
     def publish_meal_status(self, patient_id, meal_status_value):
-        """Publishes the meal status to the designated MQTT topic."""
+        """Publishes the meal status to the designated MQTT topic for the specific patient."""
         # MyMQTT's myPublish expects a dictionary, which it then json.dumps internally.
-        mqtt_payload_dict = { # <--- CHANGED: Creating a dict
-            "patient_id": patient_id,
+        mqtt_payload_dict = {
+            "patient_id": patient_id, # Keep patient_id in payload for redundancy/parsing convenience
             "meal_status": meal_status_value,
-            "timestamp": time.time() # Use current time for timestamp
+            "timestamp": time.time()
         }
         try:
-            self.mqtt_client.myPublish(self.publish_topic, mqtt_payload_dict) # <--- CHANGED: Using MyMQTT's myPublish
+            # Publish to the specific patient's meal status topic
+            self.mqtt_client.myPublish(self.publish_topic, mqtt_payload_dict)
             print(f"MQTT Worker: Published meal status to {self.publish_topic}: {mqtt_payload_dict}")
         except Exception as e:
             print(f"MQTT Worker: Error publishing meal status: {e}")
@@ -78,7 +74,8 @@ class TelegramMQTTWorker:
 class PatientTelegramBot:
     """
     Main class for the Patient's Telegram Bot, orchestrating Telegram and MQTT.
-    Now supports multiple chat IDs by using the Catalog for persistent storage.
+    Supports multiple chat IDs by using the Catalog for persistent storage,
+    and uses patient-specific MQTT topics and unique client IDs for scalability.
     """
     def __init__(self, settings_file_path):
         # Load settings
@@ -93,30 +90,56 @@ class PatientTelegramBot:
             print(f"Main Bot: Error: {settings_file_path} has an invalid JSON format.")
             exit(1)
 
-        self.patient_id = self.settings.get("PATIENT_ID", "default_patient_id") # This bot instance serves THIS patient_id
-        self.catalog_url = self.settings["CATALOG_URL"]
+        # --- EXTRACT SETTINGS BASED ON PROVIDED JSON STRUCTURE ---
+        # Direct properties
+        self.catalog_url = self.settings["catalogURL"]
+        self.broker_ip = self.settings["brokerIP"]
+        self.broker_port = self.settings["brokerPort"]
+
+        # Properties nested under "serviceInfo"
+        service_info_config = self.settings["serviceInfo"]
+        self.telegram_bot_token = service_info_config["telegram_token"]
+        self.patient_id = service_info_config["patient_ID"] # This is the actual ID for this bot instance (e.g., "patient_001")
+        
+        # Topic templates from settings
+        mqtt_subscribe_topic_template = service_info_config["MQTT_sub"]
+        mqtt_publish_topic_template = service_info_config["MQTT_pub"]
+        mqtt_client_id_template = service_info_config["clientID"]
+
+        # --- CONSTRUCT UNIQUE VALUES FOR THIS BOT INSTANCE ---
+        # Format the specific topics for THIS patient
+        subscribe_topic_alerts = mqtt_subscribe_topic_template.format(PATIENT_ID=self.patient_id)
+        publish_topic_meal_status = mqtt_publish_topic_template.format(PATIENT_ID=self.patient_id)
+        
+        # Format the unique Client ID for THIS bot instance
+        unique_client_id = mqtt_client_id_template.format(PATIENT_ID=self.patient_id)
+
+
+        # Service info for Catalog registration
         self.service_info = {
-            "service_id": self.settings["SERVICE_ID"],
-            "service_type": self.settings["SERVICE_TYPE"],
+            "service_id": service_info_config["serviceID"],
+            "service_type": "user_interface", # Assuming this remains fixed as per your Project description
             "mqtt_topics": {
-                "subscribe": [self.settings["MQTT_SUBSCRIBE_TOPIC_ALERTS"]],
-                "publish": [self.settings["MQTT_PUBLISH_TOPIC_MEAL_STATUS"]]
+                "subscribe": [subscribe_topic_alerts], # Use the formatted topic here for Catalog registration
+                "publish": [publish_topic_meal_status] # Use the formatted topic here for Catalog registration
             },
             "rest_endpoints": {} # This bot instance acts as a client, not exposing REST services
         }
+        # If 'last_updated' needs to be sent, it should be updated dynamically before registration
+        # self.service_info["last_updated"] = int(time.time()) # Uncomment if Catalog requires this from client
 
-        # Initialize MQTT Worker
+        # Initialize MQTT Worker with the specific topics and unique client ID for this patient
         self.mqtt_worker = TelegramMQTTWorker(
-            broker_ip=self.settings["MQTT_BROKER_HOST"],
-            broker_port=self.settings["MQTT_BROKER_PORT"],
-            client_id=self.settings["MQTT_CLIENT_ID"],
-            subscribe_topic=self.settings["MQTT_SUBSCRIBE_TOPIC_ALERTS"],
-            publish_topic=self.settings["MQTT_PUBLISH_TOPIC_MEAL_STATUS"],
-            message_callback=self._send_telegram_alert # This is the bridge
+            broker_ip=self.broker_ip,
+            broker_port=self.broker_port,
+            client_id=unique_client_id, # <--- Pass the unique Client ID here
+            subscribe_topic=subscribe_topic_alerts, # Pass the formatted topic to the worker
+            publish_topic=publish_topic_meal_status, # Pass the formatted topic to the worker
+            message_callback=self._send_telegram_alert
         )
 
         # Initialize Telegram Application
-        self.application = Application.builder().token(self.settings["TELEGRAM_BOT_TOKEN"]).build()
+        self.application = Application.builder().token(self.telegram_bot_token).build()
 
         # Add Telegram Handlers
         self.application.add_handler(CommandHandler("start", self._start_command))
@@ -127,7 +150,7 @@ class PatientTelegramBot:
     async def _send_telegram_alert(self, mqtt_payload_str: str):
         """
         Called by the MQTT worker to send an alert to the Telegram user.
-        This now dynamically fetches the chat_id from the Catalog based on patient_id.
+        This dynamically fetches the chat_id from the Catalog based on patient_id.
         Expected MQTT payload: {"patient_id": "...", "alert_message": "..."}
         """
         try:
@@ -137,6 +160,12 @@ class PatientTelegramBot:
 
             if not target_patient_id:
                 print("Main Bot: MQTT alert received without a patient_id. Cannot send to specific user.")
+                return
+            
+            # Sanity check: Ensure the alert is for THIS patient instance of the bot
+            # This is important if, somehow, a message for another patient arrived (e.g., misconfiguration or wildcard subscribe)
+            if target_patient_id != self.patient_id:
+                print(f"Main Bot: Received alert for patient {target_patient_id} but this bot instance serves {self.patient_id}. Ignoring.")
                 return
 
             print(f"Main Bot: Attempting to send alert for patient {target_patient_id}: {alert_message}")
@@ -170,7 +199,6 @@ class PatientTelegramBot:
         current_user_id = update.effective_user.id # Telegram's unique user ID
 
         # --- UPDATE CATALOG WITH CHAT_ID FOR THIS PATIENT ---
-        # This assumes self.patient_id is the patient ID this bot instance is configured for.
         catalog_update_url = f'{self.catalog_url}/users/{self.patient_id}'
         update_payload = {"telegram_chat_id": current_chat_id}
 
@@ -239,10 +267,6 @@ class PatientTelegramBot:
     # --- Catalog Communication (using requests directly in main bot class) ---
     def _register_service_with_catalog(self):
         """Registers this service with the central Catalog."""
-        # The Catalog is expected to add the 'timestamp' field itself.
-        # If your Catalog expects 'last_update' from the client, add it here.
-        # self.service_info['last_update'] = int(time.time()) # Uncomment if Catalog requires this from client
-
         catalog_register_url = f'{self.catalog_url}/services'
         try:
             response = requests.post(catalog_register_url, json=self.service_info)
@@ -282,22 +306,8 @@ class PatientTelegramBot:
 if __name__ == "__main__":
     # Ensure you have a 'config_patient_bot.json' file in the same directory
     # or provide the correct path.
-    # IMPORTANT: The "PATIENT_ID" in this config file should match the patient
-    # ID already registered by the Doctor's Bot in the Catalog.
     """
-    Example content for config_patient_bot.json:
-    {
-      "TELEGRAM_BOT_TOKEN": "YOUR_TELEGRAM_BOT_TOKEN_HERE",
-      "CATALOG_URL": "http://catalog:9080", // Use the Docker service name and port
-      "MQTT_BROKER_HOST": "broker.hivemq.com", // Or your local broker's IP/hostname
-      "MQTT_BROKER_PORT": 1883,
-      "MQTT_CLIENT_ID": "telegram_patient_bot_1",
-      "MQTT_SUBSCRIBE_TOPIC_ALERTS": "/notifications/alert",
-      "MQTT_PUBLISH_TOPIC_MEAL_STATUS": "/status/meal/patient_1",
-      "SERVICE_ID": "patient_telegram_bot_service",
-      "SERVICE_TYPE": "user_interface",
-      "PATIENT_ID": "patient_001" // <--- CRITICAL: This ties the bot instance to a specific patient
-    }
+    Example content for config_patient_bot.json is provided below.
     """
 
     bot_instance = PatientTelegramBot('config_patient_bot.json')
@@ -310,5 +320,4 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"An unhandled error occurred in main execution: {e}")
     finally:
-        # Ensure stop is called even if an error occurs during polling
         bot_instance.stop()
