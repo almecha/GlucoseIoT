@@ -1,5 +1,3 @@
-# this partially works, it can register doctors and its having troubles to register patients
-
 import logging
 import asyncio
 import httpx
@@ -28,7 +26,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Conversation states
+
+# Conversation states (custom for step-by-step threshold input)
 (
     REGISTER_OR_LOGIN,
     LOGIN_USERNAME,
@@ -39,7 +38,10 @@ logger = logging.getLogger(__name__)
     REGISTER_PATIENT_NAME,
     REGISTER_PATIENT_AGE,
     REGISTER_PATIENT_DEVICE,
-    REGISTER_PATIENT_THRESHOLDS,
+    REGISTER_PATIENT_GLUCOSE_NORMAL,
+    REGISTER_PATIENT_GLUCOSE_EX_PRE,
+    REGISTER_PATIENT_GLUCOSE_EX_POST,
+    REGISTER_PATIENT_MAX_INSULIN,
     REGISTER_PATIENT_DOCTOR_ID,
     DOCTOR_MENU,
     MASTER_DOCTOR_MENU,
@@ -50,7 +52,7 @@ logger = logging.getLogger(__name__)
     EDIT_PATIENT_SELECT_ID,
     EDIT_PATIENT_FIELD,
     EDIT_PATIENT_NEW_VALUE,
-) = range(20) # Aumentado el rango para nuevos estados si es necesario
+) = range(23)
 
 # Keyboard layouts
 MAIN_MENU_KEYBOARD_DOCTOR = [
@@ -118,7 +120,10 @@ class DoctorTelegramBot:
                 REGISTER_PATIENT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_name)],
                 REGISTER_PATIENT_AGE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_age)],
                 REGISTER_PATIENT_DEVICE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_device)],
-                REGISTER_PATIENT_THRESHOLDS: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_thresholds)],
+                REGISTER_PATIENT_GLUCOSE_NORMAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_glucose_normal)],
+                REGISTER_PATIENT_GLUCOSE_EX_PRE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_glucose_ex_pre)],
+                REGISTER_PATIENT_GLUCOSE_EX_POST: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_glucose_ex_post)],
+                REGISTER_PATIENT_MAX_INSULIN: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_max_insulin)],
                 REGISTER_PATIENT_DOCTOR_ID: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.register_patient_doctor_id)],
                 DOCTOR_MENU: [
                     MessageHandler(filters.Regex("^Register New Patient$"), self.register_patient_start),
@@ -127,7 +132,7 @@ class DoctorTelegramBot:
                     MessageHandler(filters.Regex("^Edit Patient Info$"), self.edit_patient_select_id),
                     MessageHandler(filters.Regex("^Delete User$"), self.delete_user_select_id),
                     MessageHandler(filters.Regex("^Return to Main Menu$"), self.return_to_master_doctor_menu_or_end),
-                    MessageHandler(filters.ALL, self._debug_unmatched), # Fallback for this state
+                    MessageHandler(filters.ALL, self._debug_unmatched),
                 ],
                 MASTER_DOCTOR_MENU: [
                     MessageHandler(filters.Regex("^Register New Doctor$"), self.register_doctor_start),
@@ -135,9 +140,9 @@ class DoctorTelegramBot:
                     MessageHandler(filters.Regex("^List All Doctors$"), self.list_doctors),
                     MessageHandler(filters.Regex("^List My Patients$"), self.list_patients),
                     MessageHandler(filters.Regex("^View User Info$"), self.view_user_select_id),
-                    MessageHandler(filters.Regex("^Edit User Info$"), self.edit_patient_select_id), # Assuming this can edit any user
+                    MessageHandler(filters.Regex("^Edit User Info$"), self.edit_patient_select_id),
                     MessageHandler(filters.Regex("^Delete User$"), self.delete_user_select_id),
-                    MessageHandler(filters.ALL, self._debug_unmatched), # Fallback for this state
+                    MessageHandler(filters.ALL, self._debug_unmatched),
                 ],
                 LIST_PATIENTS: [
                     MessageHandler(filters.Regex("^Return to Doctor Menu$"), self.return_to_doctor_menu),
@@ -187,20 +192,20 @@ class DoctorTelegramBot:
         try:
             response = await send_catalog_request("GET", "users", params={"userID": str(user_id)})
             user_data = response.get("user")
-            if user_data:
-                context.user_data['role'] = user_data.get('role')
-                context.user_data['username'] = user_data.get('userName')
-                await update.message.reply_text(f"Welcome back, {user_data.get('userName')}! You are logged in as a {user_data.get('role')}.")
-                if user_data.get('role') == "Doctor":
-                    context.user_data['state'] = DOCTOR_MENU # Store current state
-                    return DOCTOR_MENU
-                elif user_data.get('role') == "MasterDoctor":
-                    context.user_data['state'] = MASTER_DOCTOR_MENU # Store current state
-                    return MASTER_DOCTOR_MENU
-            else:
-                # This part should ideally not be reached if the GET user call returns 404 and is caught.
-                # If a 404 is raised, the `except` block will handle it.
-                pass
+            if user_data.get('role') == "Doctor":
+                context.user_data['state'] = DOCTOR_MENU
+                await update.message.reply_text(
+                    f"Welcome back, {user_data.get('userName')}! You are logged in as a {user_data.get('role')}.",
+                    reply_markup=ReplyKeyboardMarkup(MAIN_MENU_KEYBOARD_DOCTOR, resize_keyboard=True, one_time_keyboard=False),
+                )
+                return DOCTOR_MENU
+            elif user_data.get('role') == "MasterDoctor":
+                context.user_data['state'] = MASTER_DOCTOR_MENU
+                await update.message.reply_text(
+                    f"Welcome back, {user_data.get('userName')}! You are logged in as a {user_data.get('role')}.",
+                    reply_markup=ReplyKeyboardMarkup(MAIN_MENU_KEYBOARD_MASTER_DOCTOR, resize_keyboard=True, one_time_keyboard=False),
+                )
+                return MASTER_DOCTOR_MENU
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:
                 logger.info(f"User {user_id} not found in catalog. Proceeding to registration/login options.")
@@ -352,20 +357,20 @@ class DoctorTelegramBot:
         try:
             response = await send_catalog_request("POST", "login", data=payload)
             user_data = response.get('user')
-            if user_data:
-                context.user_data['role'] = user_data.get('role')
-                context.user_data['user_id'] = user_data.get('userID') # Ensure user_id is updated for logged in user
-                await update.message.reply_text(f"Login successful! Welcome back, {user_data.get('userName')}!")
-                if user_data.get('role') == "Doctor":
-                    context.user_data['state'] = DOCTOR_MENU # Store current state
+            if user_data.get('role') == "Doctor":
+                    context.user_data['state'] = DOCTOR_MENU
+                    await update.message.reply_text(
+                        f"Login successful! Welcome back, {user_data.get('userName')}!",
+                        reply_markup=ReplyKeyboardMarkup(MAIN_MENU_KEYBOARD_DOCTOR, resize_keyboard=True, one_time_keyboard=False),
+                    )
                     return DOCTOR_MENU
-                elif user_data.get('role') == "MasterDoctor":
-                    context.user_data['state'] = MASTER_DOCTOR_MENU # Store current state
+            elif user_data.get('role') == "MasterDoctor":
+                    context.user_data['state'] = MASTER_DOCTOR_MENU
+                    await update.message.reply_text(
+                        f"Login successful! Welcome back, {user_data.get('userName')}!",
+                        reply_markup=ReplyKeyboardMarkup(MAIN_MENU_KEYBOARD_MASTER_DOCTOR, resize_keyboard=True, one_time_keyboard=False),
+                    )
                     return MASTER_DOCTOR_MENU
-                else:
-                    await update.message.reply_text("Your role does not have an associated menu in this bot. Please contact support.")
-                    context.user_data['state'] = ConversationHandler.END # Store current state
-                    return ConversationHandler.END
             else:
                 await update.message.reply_text("Login failed. Invalid username or password.")
                 context.user_data['state'] = LOGIN_USERNAME # Back to username for retry
@@ -407,32 +412,62 @@ class DoctorTelegramBot:
             context.user_data['state'] = REGISTER_PATIENT_AGE # Stay in this state
             return REGISTER_PATIENT_AGE
 
+
     async def register_patient_device(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         device_id = update.message.text
-        context.user_data['connected_devices'] = [{"deviceID": device_id, "status": "active"}] # Assuming one device for now
-        await update.message.reply_text("Please enter threshold parameters as JSON (e.g., {\"glucose_min\": 70, \"glucose_max\": 180}):")
-        context.user_data['state'] = REGISTER_PATIENT_THRESHOLDS # Store current state
-        return REGISTER_PATIENT_THRESHOLDS
+        context.user_data['connected_devices'] = [{"deviceID": device_id, "status": "active"}]
+        await update.message.reply_text("Please enter the target glucose level (normal) (e.g., 100):")
+        context.user_data['state'] = REGISTER_PATIENT_GLUCOSE_NORMAL
+        return REGISTER_PATIENT_GLUCOSE_NORMAL
 
-    async def register_patient_thresholds(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    async def register_patient_glucose_normal(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         try:
-            threshold_params = json.loads(update.message.text)
-            context.user_data['threshold_parameters'] = threshold_params
-            
+            value = float(update.message.text)
+            context.user_data['target_glucose_level_normal'] = value
+            await update.message.reply_text("Please enter the target glucose level (exercise, pre-meal) (e.g., 90):")
+            context.user_data['state'] = REGISTER_PATIENT_GLUCOSE_EX_PRE
+            return REGISTER_PATIENT_GLUCOSE_EX_PRE
+        except ValueError:
+            await update.message.reply_text("Invalid value. Please enter a number for target glucose level (normal):")
+            return REGISTER_PATIENT_GLUCOSE_NORMAL
+
+    async def register_patient_glucose_ex_pre(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        try:
+            value = float(update.message.text)
+            context.user_data['target_glucose_level_excersise_premeal'] = value
+            await update.message.reply_text("Please enter the target glucose level (exercise, post-meal) (e.g., 120):")
+            context.user_data['state'] = REGISTER_PATIENT_GLUCOSE_EX_POST
+            return REGISTER_PATIENT_GLUCOSE_EX_POST
+        except ValueError:
+            await update.message.reply_text("Invalid value. Please enter a number for target glucose level (exercise, pre-meal):")
+            return REGISTER_PATIENT_GLUCOSE_EX_PRE
+
+    async def register_patient_glucose_ex_post(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        try:
+            value = float(update.message.text)
+            context.user_data['target_glucose_level_excersise_postmeal'] = value
+            await update.message.reply_text("Please enter the max daily amount of insulin (e.g., 50):")
+            context.user_data['state'] = REGISTER_PATIENT_MAX_INSULIN
+            return REGISTER_PATIENT_MAX_INSULIN
+        except ValueError:
+            await update.message.reply_text("Invalid value. Please enter a number for target glucose level (exercise, post-meal):")
+            return REGISTER_PATIENT_GLUCOSE_EX_POST
+
+    async def register_patient_max_insulin(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+        try:
+            value = float(update.message.text)
+            context.user_data['max_daily_amount_insulin'] = value
             # If the current user is a Doctor, the doctorID is their own userID
-            # If the current user is a MasterDoctor, they will be prompted for doctorID
             if context.user_data.get('role') == "Doctor":
                 context.user_data['doctor_id'] = context.user_data.get('user_id')
                 return await self._register_patient_finalize(update, context)
-            else: # MasterDoctor
+            else:
                 await update.message.reply_text("Please enter the Doctor ID who will be assigned to this patient:")
-                context.user_data['state'] = REGISTER_PATIENT_DOCTOR_ID # Store current state
+                context.user_data['state'] = REGISTER_PATIENT_DOCTOR_ID
                 return REGISTER_PATIENT_DOCTOR_ID
-
-        except json.JSONDecodeError:
-            await update.message.reply_text("Invalid JSON format for thresholds. Please try again.")
-            context.user_data['state'] = REGISTER_PATIENT_THRESHOLDS # Stay in this state
-            return REGISTER_PATIENT_THRESHOLDS
+        except ValueError:
+            await update.message.reply_text("Invalid value. Please enter a number for max daily amount of insulin:")
+            return REGISTER_PATIENT_MAX_INSULIN
     
     async def register_patient_doctor_id(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         doctor_id = update.message.text
@@ -460,22 +495,29 @@ class DoctorTelegramBot:
             return ConversationHandler.END
 
 
+
     async def _register_patient_finalize(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         patient_id = context.user_data['patient_id']
         patient_name = context.user_data['patient_name']
         patient_age = context.user_data['patient_age']
         connected_devices = context.user_data['connected_devices']
-        threshold_parameters = context.user_data['threshold_parameters']
         doctor_id = context.user_data['doctor_id']
-        
+
+        threshold_parameters = {
+            "target_glucose_level_normal": context.user_data.get('target_glucose_level_normal'),
+            "target_glucose_level_excersise_premeal": context.user_data.get('target_glucose_level_excersise_premeal'),
+            "target_glucose_level_excersise_postmeal": context.user_data.get('target_glucose_level_excersise_postmeal'),
+            "max_daily_amount_insulin": context.user_data.get('max_daily_amount_insulin'),
+        }
+
         patient_payload = {
             "userID": patient_id,
             "userName": patient_name,
             "role": "Patient",
             "connected_devices": connected_devices,
-            "user_information": {"age": patient_age}, # Store age within user_information
+            "user_information": {"age": patient_age},
             "threshold_parameters": threshold_parameters,
-            "doctorID": doctor_id # Assign the doctor
+            "doctorID": doctor_id
         }
 
         try:
@@ -485,14 +527,13 @@ class DoctorTelegramBot:
             # Determine which menu to return to based on the current user's role
             current_user_role = context.user_data.get('role')
             if current_user_role == "Doctor":
-                context.user_data['state'] = DOCTOR_MENU # Store current state
+                context.user_data['state'] = DOCTOR_MENU
                 return DOCTOR_MENU
             elif current_user_role == "MasterDoctor":
-                context.user_data['state'] = MASTER_DOCTOR_MENU # Store current state
+                context.user_data['state'] = MASTER_DOCTOR_MENU
                 return MASTER_DOCTOR_MENU
             else:
-                # Fallback if role is not set or unexpected
-                context.user_data['state'] = ConversationHandler.END # Store current state
+                context.user_data['state'] = ConversationHandler.END
                 return ConversationHandler.END
 
         except httpx.HTTPStatusError as e:
@@ -501,21 +542,20 @@ class DoctorTelegramBot:
             else:
                 await update.message.reply_text(f"Registration failed: {e.response.status_code} - {e.response.text}")
             logger.error(f"Patient registration failed for {patient_id}: {e}")
-            # Return to the correct menu after failure
             current_user_role = context.user_data.get('role')
             if current_user_role == "Doctor":
-                context.user_data['state'] = DOCTOR_MENU # Store current state
+                context.user_data['state'] = DOCTOR_MENU
                 return DOCTOR_MENU
             elif current_user_role == "MasterDoctor":
-                context.user_data['state'] = MASTER_DOCTOR_MENU # Store current state
+                context.user_data['state'] = MASTER_DOCTOR_MENU
                 return MASTER_DOCTOR_MENU
             else:
-                context.user_data['state'] = ConversationHandler.END # Store current state
+                context.user_data['state'] = ConversationHandler.END
                 return ConversationHandler.END
         except Exception as e:
             await update.message.reply_text(f"An unexpected error occurred during patient registration: {e}")
             logger.error(f"Unexpected error during patient registration: {e}")
-            context.user_data['state'] = ConversationHandler.END # Store current state
+            context.user_data['state'] = ConversationHandler.END
             return ConversationHandler.END
         
     async def list_patients(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
