@@ -12,31 +12,30 @@
         "IP": "test.mosquitto.org",
         "port": 1883
     },
-    "broker_token": "",
     "servicesList":[
         {
             "serviceID":"ThresholdAnalyzer",
             "REST_endpoint":"glucoseiot/threshold",
             "MQTT_sub": ["glucoseiot/glucose_level"],
             "MQTT_pub": ["glucoseiot/threshold"],
-            "serviceDetails": [], 
+            "serviceDetails": [],
             "timestamp": ""
         },
-        {   
+        {
             "serviceID":"PatientTelegramBot",
             "REST_endpoint":"glucoseiot/telegram/patient",
             "MQTT_sub": ["glucoseiot/glucose_level", "glucoseiot/threshold"],
             "MQTT_pub": ["glucoseiot/meal_condition"],
             "token": "patient_bot_token",
-            "timestamp": ""        
+            "timestamp": ""
         },
-        {   
+        {
             "serviceID":"DoctorTelegramBot",
             "REST_endpoint":"glucoseiot/telegram/doctor",
             "MQTT_sub": ["glucoseiot/glucose_level", "glucoseiot/threshold"],
             "MQTT_pub": [],
             "token": "doctor_bot_token",
-            "timestamp": ""        
+            "timestamp": ""
         },
         {
             "serviceID":"ReportsGenerator",
@@ -66,7 +65,7 @@
             "MQTT_pub": [],
             "timestamp": ""
         }
-    ], 
+    ],
     "serviceDetails":[
 
     ],
@@ -138,11 +137,11 @@
                         "channel":""
                     }
                 }
-            ], 
+            ],
             "patient_information": {
                 "age": 20,
                 "target_glucose_level": 10,
-                "target_glucose_level_excersise_premeal": 1, 
+                "target_glucose_level_excersise_premeal": 1,
                 "target_glucose_level_excersise_postmeal": 1,
                 "max_daily_amount_insulin":1
             },
@@ -156,13 +155,15 @@
                     "amount": 222
                 },
                 "lastUpdate": "2025-03-19 10:50:10"
-            }
+            },
+            "timestamp":""
         },
         {
             "userName": "Doctor B",
             "userID": 2,
             "role": "Doctor",
-            "chatID": 222222
+            "chatID": 222222,
+            "timestamp":""
         }
     ]
 }
