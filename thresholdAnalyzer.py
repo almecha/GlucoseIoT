@@ -1,4 +1,4 @@
-import json, requests, logging
+import json, requests, logging, cherrypy
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 
@@ -8,7 +8,14 @@ logging.basicConfig(level=logging.INFO)
 
 class ThresholdAnalyzer:
     def __init__(self, jsonFile):
-        with open(jsonFile, "r") as f:
+        """
+        response = requests.get(catalog_url, timeout=5)
+        if response.status_code == 200:
+            self.catalog = response.json()
+        else:
+            raise Exception(f"Failed to fetch catalog: {response.status_code}")
+        """
+        with open(jsonFile, "r") as f: # 2 be removed when catalog is exposed
             self.catalog = json.load(f)
 
         # Extract MQTT broker and port
@@ -192,5 +199,15 @@ class ThresholdAnalyzer:
 
 
 if __name__ == "__main__":
-    catalog = 'service_catalog.json'
-    analyzer = ThresholdAnalyzer(catalog)
+    catalog_url = "service_catalog.json" # to be changed when the catalog is exposed
+    web_service = ThresholdAnalyzer(catalog_url)
+    conf={
+        '/':{
+        'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
+        'tools.sessions.on':True
+        }
+        }
+    cherrypy.tree.mount(web_service,'/',conf)
+    cherrypy.config.update({'server.socket_port':8080})
+    cherrypy.engine.start()
+    cherrypy.engine.block()
