@@ -7,15 +7,16 @@ logging.basicConfig(level=logging.INFO)
 
 
 class ThresholdAnalyzer:
-    def __init__(self, jsonFile):
+    def __init__(self, catalog):
+        exposed = True
         """
-        response = requests.get(catalog_url, timeout=5)
+        response = requests.get(catalog, timeout=5)
         if response.status_code == 200:
             self.catalog = response.json()
         else:
             raise Exception(f"Failed to fetch catalog: {response.status_code}")
         """
-        with open(jsonFile, "r") as f: # 2 be removed when catalog is exposed
+        with open(catalog, "r") as f: # 2 be removed when catalog is exposed
             self.catalog = json.load(f)
 
         # Extract MQTT broker and port
@@ -68,6 +69,7 @@ class ThresholdAnalyzer:
         return max(dose, 0) # round the dose to the nearest .5 (it can't be negative)
 
 
+    # returns true only if the patient has not eaten in 2 hours
     def check_fasting(self,last_meal_timestamp):
         try:
             timestamp = datetime.strptime(last_meal_timestamp, "%Y-%m-%d %H:%M:%S")
@@ -77,11 +79,13 @@ class ThresholdAnalyzer:
                 return False
             else:
                 return True
-        except:
+        except ValueError:
+            return False
+        except TypeError:
             return False
 
 
-    def on_connect(self, client, userdata, flags, rc):
+    def on_connect(self, client, _userdata, _flags, rc):
         """
         Callback for when the client receives a connection response from the MQTT broker.
         On a successful connection (rc==0), the client subscribes to the glucose data topic.
@@ -94,7 +98,7 @@ class ThresholdAnalyzer:
             logging.error(f"Failed to connect to MQTT broker, return code: {rc:,}")
 
 
-    def on_message(self, client, userdata, msg): # callback for a received PUBLISH message
+    def on_message(self, _client, _userdata, msg): # callback for a received PUBLISH message
         """
         Expecting a JSON payload with:
          - glucose: the measured glucose level (in mg/dL)
@@ -144,7 +148,7 @@ class ThresholdAnalyzer:
                 insulin_dose = self.calculate_insulin_dose(glucose, target_glycemia, insulin_resistence)
                 response["action"] = "administer_insulin"
                 response["suggested_insulin_dose"] = insulin_dose
-                response["message"] += f"High glucose: ({glucose} mg/mL).\n"
+                response["message"] += f"High glucose: ({glucose} mg/dL).\n"
                 if fasting:
                     response["message"] += (f"Unless you have eaten in the last 2 hours, the recommended insulin dose is: {insulin_dose:.1f} unit/-s.\n"
                                             f"Otherwise, if you actually have eaten, take half of the recommended dose: {0.5*insulin_dose:.1f} unit/-s.\n")
@@ -156,16 +160,16 @@ class ThresholdAnalyzer:
 
             elif glucose <= extreme_low: # extremely low glycemia
                 response["immediate_action"] = "contact_doctor"
-                response["message"] = (f"Extremely low glucose: ({glucose} mg/mL). You should immediately eat something "
+                response["message"] = (f"Extremely low glucose: ({glucose} mg/dL). You should immediately eat something "
                                        f"and call either your doctor or the emergency services.")
 
             elif extreme_low < glucose <= low_threshold:  # low glycemia
                 response["action"] = "eat_food"
-                response["message"] = f"Low glucose: ({glucose} mg/mL). Please, have a snack to raise your blood sugar."
+                response["message"] = f"Low glucose: ({glucose} mg/dL). Please, have a snack to raise your blood sugar."
 
             else: # Glucose level is within acceptable range: no action needed.
                 response["action"] = "none"
-                response["message"] = f"Glucose level is normal ({glucose} mg/mL). No intervention required."
+                response["message"] = f"Glucose level is normal ({glucose} mg/dL). No intervention required."
 
             # Include additional information in the response.
             response["timestamp"] = timestamp
