@@ -1,4 +1,4 @@
-import json, requests, logging, cherrypy
+import json, requests, logging, cherrypy, math
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta
 
@@ -114,6 +114,11 @@ class ThresholdAnalyzer:
 
             if glucose is None or device_id is None:
                 logging.error("Message payload missing required fields ('glucose' or 'device_id').")
+                return
+
+            # Ensure glucose is a number and not NaN
+            if not isinstance(glucose, (int, float)) or math.isnan(glucose):
+                logging.error("Invalid glucose value: must be a number and not NaN.")
                 return
 
             # Retrieve patient details as a JSON file from the Thingspeak service.
