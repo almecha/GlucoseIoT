@@ -7,8 +7,8 @@ logging.basicConfig(level=logging.INFO)
 
 
 class ThresholdAnalyzer:
+    exposed = True
     def __init__(self, catalog):
-        exposed = True
         """
         response = requests.get(catalog, timeout=5)
         if response.status_code == 200:
@@ -24,12 +24,12 @@ class ThresholdAnalyzer:
         self.mqtt_port = self.catalog["broker"]["port"]
 
         # Extract the topics for the threshold analyzer from the catalog
-        service = next((serviceID for serviceID in self.catalog["servicesList"] if serviceID=='ThresholdAnalyzer'), None)
+        service = next((svc for svc in self.catalog["servicesList"] if svc["serviceID"]=='ThresholdAnalyzer'), None)
         self.topic_glucose = service["MQTT_sub"][0]
         self.topic_response = service["MQTT_pub"][0]
 
         # Extract Thingspeak endpoint
-        service = next((serviceID for serviceID in self.catalog["servicesList"] if serviceID=='ThingspeakAdaptor'), None)
+        service = next((svc for svc in self.catalog["servicesList"] if svc["serviceID"]=='ThingspeakAdaptor'), None)
         self.thingspeak_base = service["REST_endpoint"] + "/"
 
         # retrieve the endpoint for the patients' data
@@ -39,6 +39,10 @@ class ThresholdAnalyzer:
         self.client = mqtt.Client()
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
+
+
+    def GET(self):
+        return "The Threshold Analyzer is running"
 
 
     # Retrieve patient information from the Thingspeak service
