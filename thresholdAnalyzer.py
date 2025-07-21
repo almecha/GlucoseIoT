@@ -135,7 +135,7 @@ class ThresholdAnalyzer:
             target_glycemia = patient_info.get("target_glycemia", 100)  # 100 = default
             low_threshold = patient_info.get("low_threshold", 80)
             extreme_low = patient_info.get("extreme_low", 54) # require immediate action
-            fasting_threshold = patient_info.get("fasting_threshold", 130)
+            fasting_threshold = patient_info.get("fasting_threshold", 160)
             severe_hyperglycemia = patient_info.get("severe_hyperglycemia_threshold", 240) # immediate action
             patient_meals = patient_info.get("meals") # list of ordered timestamps
             insulin_resistence = patient_info.get("insulin_resistence", 0) # 0 is normal, 1 is insulin resistant,
@@ -162,7 +162,7 @@ class ThresholdAnalyzer:
                     response["message"] += (f"Unless you have eaten in the last 2 hours, the recommended insulin dose is: {insulin_dose:.1f} unit/-s.\n"
                                             f"Otherwise, if you actually have eaten, take half of the recommended dose: {0.5*insulin_dose:.1f} unit/-s.\n")
                 else:
-                    response["message"] += (f"According to the database you have eaten in the last 2 hours.\n"
+                    response["message"] += (f"According to the record you have eaten in the last 2 hours.\n"
                                             f"Therefore, the recommended insulin dose is: {0.5*insulin_dose:.1f} unit/-s.\n"
                                             f"If that is not the case and you have not, in fact, eaten in the last 2 hours,\n"
                                             f"take double of the recommended dose: {insulin_dose:.1f} unit/-s.\n")
