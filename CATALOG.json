@@ -235,6 +235,11 @@
             },
             "threshold_parameters": {
                 "target_glucose_level_normal": 100.0,
+                "low_threshold": 80.0,
+                "extremely_low_threshold": 54.0,
+                "fasting_threshold": 160.0,
+                "severe_hyperglycemia_threshold": 240.0,
+                "insuline_resistence": 0,
                 "target_glucose_level_excersise_premeal": 90.0,
                 "target_glucose_level_excersise_postmeal": 200.0,
                 "max_daily_amount_insulin": 40.0
@@ -265,7 +270,12 @@
                 "ID_of_the_sensor": "S1"
             },
             "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
+                "target_glucose_level_normal": 100.0,                
+                "low_threshold": 80.0,
+                "extremely_low_threshold": 54.0,
+                "fasting_threshold": 160.0,
+                "severe_hyperglycemia_threshold": 240.0,
+                "insuline_resistence": 0,
                 "target_glucose_level_excersise_premeal": 900.0,
                 "target_glucose_level_excersise_postmeal": 99.0,
                 "max_daily_amount_insulin": 1.0
@@ -296,7 +306,12 @@
                 "ID_of_the_sensor": "S2"
             },
             "threshold_parameters": {
-                "target_glucose_level_normal": 3.0,
+                "target_glucose_level_normal": 3.0,                
+                "low_threshold": 80.0,
+                "extremely_low_threshold": 54.0,
+                "fasting_threshold": 160.0,
+                "severe_hyperglycemia_threshold": 240.0,
+                "insuline_resistence": 0,
                 "target_glucose_level_excersise_premeal": 7.0,
                 "target_glucose_level_excersise_postmeal": 8.0,
                 "max_daily_amount_insulin": 6.0
@@ -328,6 +343,11 @@
             },
             "threshold_parameters": {
                 "target_glucose_level_normal": 100.0,
+                "low_threshold": 80.0,
+                "extremely_low_threshold": 54.0,
+                "fasting_threshold": 160.0,
+                "severe_hyperglycemia_threshold": 240.0,
+                "insuline_resistence": 0,
                 "target_glucose_level_excersise_premeal": 10.0,
                 "target_glucose_level_excersise_postmeal": 30.0,
                 "max_daily_amount_insulin": 40.0
@@ -361,6 +381,11 @@
             },
             "threshold_parameters": {
                 "target_glucose_level_normal": 100.0,
+                "low_threshold": 80.0,
+                "extremely_low_threshold": 54.0,
+                "fasting_threshold": 160.0,
+                "severe_hyperglycemia_threshold": 240.0,
+                "insuline_resistence": 0,
                 "target_glucose_level_excersise_premeal": 200.0,
                 "target_glucose_level_excersise_postmeal": 200.0,
                 "max_daily_amount_insulin": 4.0
@@ -392,6 +417,11 @@
             },
             "threshold_parameters": {
                 "target_glucose_level_normal": 100.0,
+                "low_threshold": 80.0,
+                "extremely_low_threshold": 54.0,
+                "fasting_threshold": 160.0,
+                "severe_hyperglycemia_threshold": 240.0,
+                "insuline_resistence": 0,
                 "target_glucose_level_excersise_premeal": 90.0,
                 "target_glucose_level_excersise_postmeal": 120.0,
                 "max_daily_amount_insulin": 1.0
@@ -423,6 +453,11 @@
             },
             "threshold_parameters": {
                 "target_glucose_level_normal": 100.0,
+                "low_threshold": 80.0,
+                "extremely_low_threshold": 54.0,
+                "fasting_threshold": 160.0,
+                "severe_hyperglycemia_threshold": 240.0,
+                "insuline_resistence": 0,
                 "target_glucose_level_excersise_premeal": 100.0,
                 "target_glucose_level_excersise_postmeal": 100.0,
                 "max_daily_amount_insulin": 10.0
