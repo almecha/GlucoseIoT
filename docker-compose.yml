@@ -1,0 +1,36 @@
+services:
+  catalog:
+    build: ./catalog_branch
+    ports:
+      - "9080:9080"
+    volumes:
+      - ./catalog_branch/CATALOG.json:/app/CATALOG.json
+    networks:
+      - glucose_network
+
+  doctor_bot:
+    build: "./telegram_branch/Doctor's TelegramBot"
+    depends_on:
+      - catalog
+    networks:
+      - glucose_network
+    environment:
+      - INIT_DELAY=5  # Espera 5 segundos
+    restart: unless-stopped
+
+  patients_bot:
+    build: "./telegram_branch/Patient's TelegramBot"
+    depends_on:
+      - catalog
+    networks:
+      - glucose_network
+    environment:
+      - PATIENT_ID=patient_001  # ID concreto en vez de genérico
+      - INIT_DELAY=10  # Espera 10 segundos (más que el doctor)
+    restart: always
+    stdin_open: true  # Add these two lines
+    tty: true
+
+networks:
+  glucose_network:
+    driver: bridge
