@@ -165,7 +165,6 @@ class DoctorBot:
             if response.status_code in [200, 201]:
                 await query.edit_message_text(
                     f"✅ Registration successful!\nWelcome, Dr. {name} ({role})\n\n"
-                    f"Your temporary password is: {password}"
                 )
                 await query.message.reply_text(
                     "What would you like to do?",
