@@ -1,39 +1,44 @@
-import json, requests, logging, cherrypy, math
+import json, requests, logging, cherrypy, math, asyncio, httpx
 import paho.mqtt.client as mqtt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # print info for troubleshooting
 logging.basicConfig(level=logging.INFO)
+
+catalog_url = "http://localhost:9080"
 
 
 class ThresholdAnalyzer:
     exposed = True
     def __init__(self, catalog):
-        """
-        response = requests.get(catalog, timeout=5)
-        if response.status_code == 200:
-            self.catalog = response.json()
-        else:
-            raise Exception(f"Failed to fetch catalog: {response.status_code}")
-        """
-        with open(catalog, "r") as f: # 2 be removed when catalog is exposed
-            self.catalog = json.load(f)
-
         # Extract MQTT broker and port
-        self.mqtt_broker = self.catalog["broker"]["IP"]
-        self.mqtt_port = self.catalog["broker"]["port"]
+        response = requests.get(f"{catalog}/broker", timeout=5)
+        if response.status_code == 200:
+            self.broker = response.json()
+            self.mqtt_broker = self.broker["ID"]
+            self.mqtt_port = self.broker["port"]
+        else:
+            raise Exception(f"Failed to fetch broker: {response.status_code}")
+
 
         # Extract the topics for the threshold analyzer from the catalog
-        service = next((svc for svc in self.catalog["servicesList"] if svc["serviceID"]=='ThresholdAnalyzer'), None)
-        self.topic_glucose = service["MQTT_sub"][0]
-        self.topic_response = service["MQTT_pub"][0]
+        response = requests.get(f"{catalog}/services/ThresholdAnalyzer", timeout=5)
+        if response.status_code == 200:
+            service = response.json()
+            self.topic_glucose = service["MQTT_sub"][0]
+            self.topic_response = service["MQTT_pub"][0]
+        else:
+            raise Exception(f"Failed to fetch service details: {response.status_code}")
+
 
         # Extract Thingspeak endpoint
-        service = next((svc for svc in self.catalog["servicesList"] if svc["serviceID"]=='ThingspeakAdaptor'), None)
-        self.thingspeak_base = service["REST_endpoint"] + "/"
+        response = requests.get(f"{catalog}/services/ThingspeakAdaptor", timeout=5)
+        if response.status_code == 200:
+            service = response.json()
+            self.thingspeak_base = service["REST_endpoint"]
+        else:
+            raise Exception(f"Failed to fetch ThingspeakAdaptor details: {response.status_code}")
 
-        # retrieve the endpoint for the patients' data
-        self.patient_endpoint = 'patients/'
 
         # Create the MQTT client and assign callbacks.
         self.client = mqtt.Client()
@@ -47,7 +52,7 @@ class ThresholdAnalyzer:
 
     # Retrieve patient information from the Thingspeak service
     def get_patient_info(self, device_id): # the device ID is posted by the sensor itself inside the MQTT topic
-        url = f"{self.thingspeak_base}{self.patient_endpoint}{device_id}"
+        url = f"{self.thingspeak_base}/patients/{device_id}"
         try:
             response = requests.get(url, timeout=5)
             if response.status_code == 200:
@@ -74,19 +79,56 @@ class ThresholdAnalyzer:
 
 
     # returns true only if the patient has not eaten in 2 hours
-    def check_fasting(self,last_meal_timestamp):
-        try:
-            timestamp = datetime.strptime(last_meal_timestamp, "%Y-%m-%d %H:%M:%S")
-            now = datetime.now()
-            if now <= timestamp + timedelta(hours=2): # if at least 2 hours have not passed since the patient's
-                # latest meal, then, they are not fasting
-                return False
-            else:
+    async def check_fasting(self, channel_id: int, read_api_key: str, field_name: str = "field1",
+                                 timeframe_hours: int = 2) -> bool:
+        """
+        Arguments:
+            channel_id (int): ThingSpeak channel ID of the patient.
+            read_api_key (str): ThingSpeak read API key for the channel.
+            field_name (str): The field name in ThingSpeak where meal data is stored (default "field1").
+            timeframe_hours (int): Number of past hours to check (default 2).
+
+        Returns:
+            bool: True if meal status == 1 (eating) reported within the last timeframe_hours, else False.
+        """
+
+        # Calculate the earliest datetime to look back.
+        now = datetime.now(timezone.UTC)
+        since_time = now - timedelta(hours=timeframe_hours)
+
+        params = {
+            "api_key": read_api_key,
+            "results": 100  # max number of recent entries to fetch, adjust as needed
+        }
+
+        url = f"{self.thingspeak_base}/retrieve"
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            data = response.json()
+
+        feeds = data.get("feeds", [])
+
+        # Iterate backwards (most recent first) to find if eaten recently
+        for feed in reversed(feeds):
+            # Parse feed creation time
+            created_at_str = feed.get("created_at")  # e.g., "2023-07-18T10:34:00Z"
+            if not created_at_str:
+                continue
+            created_at = datetime.strptime(created_at_str, "%Y-%m-%dT%H:%M:%SZ")
+
+            if created_at < since_time:
+                # Older than our timeframe, no need to check further
+                break
+
+            field_value = feed.get(field_name)
+            if field_value == '1' or field_value == 1:
+                # Found a meal report indicating eating within timeframe
                 return True
-        except ValueError:
-            return False
-        except TypeError:
-            return False
+
+        # No meal "eating" status found in the last timeframe_hours
+        return False
 
 
     def on_connect(self, client, _userdata, _flags, rc):
@@ -132,14 +174,17 @@ class ThresholdAnalyzer:
                 return
 
             # Extract thresholds and patient's data; if not available, use defaults
-            target_glycemia = patient_info.get("target_glycemia", 100)  # 100 = default
-            low_threshold = patient_info.get("low_threshold", 80)
-            extreme_low = patient_info.get("extreme_low", 54) # require immediate action
-            fasting_threshold = patient_info.get("fasting_threshold", 160)
-            severe_hyperglycemia = patient_info.get("severe_hyperglycemia_threshold", 240) # immediate action
-            patient_meals = patient_info.get("meals") # list of ordered timestamps
-            insulin_resistence = patient_info.get("insulin_resistence", 0) # 0 is normal, 1 is insulin resistant,
+            thresholds = patient_info.get("threshold_parameters")
+            target_glycemia = thresholds.get("target_glucose_level_normal", 100)  # 100 = default
+            low_threshold = thresholds.get("low_threshold", 80)
+            extreme_low = thresholds.get("extremely_low_threshold", 54) # require immediate action
+            fasting_threshold = thresholds.get("fasting_threshold", 160)
+            severe_hyperglycemia = thresholds.get("severe_hyperglycemia_threshold", 240) # immediate action
+            insulin_resistence = thresholds.get("insulin_resistence", 0) # 0 is normal, 1 is insulin resistant,
             # while 2 is for patients that are insulin sensitive
+
+
+            patient_meals = patient_info.get("meals") # list of ordered timestamps
 
 
             # Analyze the glucose value and decide on the action.
@@ -212,7 +257,6 @@ class ThresholdAnalyzer:
 
 
 if __name__ == "__main__":
-    catalog_url = "service_catalog.json" # to be changed when the catalog is exposed
     web_service = ThresholdAnalyzer(catalog_url)
     conf={
         '/':{
