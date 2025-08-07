@@ -79,56 +79,65 @@ class ThresholdAnalyzer:
 
 
     # returns true only if the patient has not eaten in 2 hours
-    async def check_fasting(self, channel_id: int, read_api_key: str, field_name: str = "field1",
-                                 timeframe_hours: int = 2) -> bool:
+    async def check_fasting(self, patient_id: str) -> bool:
         """
-        Arguments:
-            channel_id (int): ThingSpeak channel ID of the patient.
-            read_api_key (str): ThingSpeak read API key for the channel.
-            field_name (str): The field name in ThingSpeak where meal data is stored (default "field1").
-            timeframe_hours (int): Number of past hours to check (default 2).
+        Check if the patient has eaten recently by querying ThingSpeak for meal data.
+
+        Args:
+            patient_id (str): The patient's unique identifier
 
         Returns:
-            bool: True if meal status == 1 (eating) reported within the last timeframe_hours, else False.
+            bool: True if patient has eaten in the last 2 hours (not fasting), False otherwise
         """
+        try:
+            # First get patient info to access their ThingSpeak channel
+            patient_info = self.get_patient_info(patient_id)
+            if not patient_info:
+                logging.error(f"Could not retrieve patient info for {patient_id}")
+                return False
 
-        # Calculate the earliest datetime to look back.
-        now = datetime.now(timezone.UTC)
-        since_time = now - timedelta(hours=timeframe_hours)
+            thingspeak_info = patient_info.get("thingspeak_info", {})
+            channel_id = thingspeak_info.get("channel")
+            read_api_key = thingspeak_info.get("apikeys", [None])[0]
 
-        params = {
-            "api_key": read_api_key,
-            "results": 100  # max number of recent entries to fetch, adjust as needed
-        }
+            if not channel_id or not read_api_key:
+                logging.error(f"Missing ThingSpeak info for patient {patient_id}")
+                return False
 
-        url = f"{self.thingspeak_base}/retrieve"
+            # Calculate timeframe (last 2 hours)
+            now = datetime.now(timezone.UTC)
+            since_time = now - timedelta(hours=2)
 
-        async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            data = response.json()
+            # Prepare request to ThingSpeak
+            params = {
+                "api_key": read_api_key,
+                "results": 100,  # Get last 100 entries (adjust as needed)
+                "start": since_time.isoformat(),
+                "end": now.isoformat()
+            }
 
-        feeds = data.get("feeds", [])
+            url = f"{self.thingspeak_base}/channels/{channel_id}/feeds.json"
 
-        # Iterate backwards (most recent first) to find if eaten recently
-        for feed in reversed(feeds):
-            # Parse feed creation time
-            created_at_str = feed.get("created_at")  # e.g., "2023-07-18T10:34:00Z"
-            if not created_at_str:
-                continue
-            created_at = datetime.strptime(created_at_str, "%Y-%m-%dT%H:%M:%SZ")
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, params=params, timeout=10.0)
 
-            if created_at < since_time:
-                # Older than our timeframe, no need to check further
-                break
+                if response.status_code == 200:
+                    data = response.json()
+                    feeds = data.get("feeds", [])
 
-            field_value = feed.get(field_name)
-            if field_value == '1' or field_value == 1:
-                # Found a meal report indicating eating within timeframe
-                return True
+                    # Field1 contains meal data (1 = eating, 0 = not eating)
+                    for feed in feeds:
+                        if feed.get("field1") == "1":
+                            return True  # Found a meal in the last 2 hours
 
-        # No meal "eating" status found in the last timeframe_hours
-        return False
+                    return False  # No meals found in timeframe
+                else:
+                    logging.error(f"ThingSpeak returned {response.status_code}")
+                    return False
+
+        except Exception as e:
+            logging.error(f"Error checking fasting status: {e}")
+            return False
 
 
     def on_connect(self, client, _userdata, _flags, rc):
@@ -144,7 +153,7 @@ class ThresholdAnalyzer:
             logging.error(f"Failed to connect to MQTT broker, return code: {rc:,}")
 
 
-    def on_message(self, _client, _userdata, msg): # callback for a received PUBLISH message
+    async def on_message(self, _client, _userdata, msg): # callback for a received PUBLISH message
         """
         Expecting a JSON payload with:
          - glucose: the measured glucose level (in mg/dL)
@@ -195,7 +204,7 @@ class ThresholdAnalyzer:
                     response["message"] += (f"Your blood glucose level is dangerously high. "
                                            f"Please, take your insulin dose and, then, contact your doctor.\n")
                 if len(patient_meals) != 0:
-                    fasting = self.check_fasting(patient_meals[-1]) # checks the latest timestamp to see if the patient
+                    fasting = await self.check_fasting(patient_info.get("userID")) # checks to see if the patient
                     # has eaten in the previous 2 hours
                 else:
                     fasting = True
