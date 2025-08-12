@@ -1,4 +1,4 @@
-import json, requests, logging, cherrypy, math, asyncio, httpx
+import json, requests, logging, cherrypy, math, httpx
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta, timezone
 
@@ -153,7 +153,7 @@ class ThresholdAnalyzer:
             logging.error(f"Failed to connect to MQTT broker, return code: {rc:,}")
 
 
-    async def on_message(self, _client, _userdata, msg): # callback for a received PUBLISH message
+    def on_message(self, _client, _userdata, msg): # callback for a received PUBLISH message
         """
         Expecting a JSON payload with:
          - glucose: the measured glucose level (in mg/dL)
@@ -183,7 +183,7 @@ class ThresholdAnalyzer:
                 return
 
             # Extract thresholds and patient's data; if not available, use defaults
-            thresholds = patient_info.get("threshold_parameters")
+            thresholds = patient_info.get("threshold_parameters", {})
             target_glycemia = thresholds.get("target_glucose_level_normal", 100)  # 100 = default
             low_threshold = thresholds.get("low_threshold", 80)
             extreme_low = thresholds.get("extremely_low_threshold", 54) # require immediate action
@@ -192,10 +192,6 @@ class ThresholdAnalyzer:
             insulin_resistence = thresholds.get("insulin_resistence", 0) # 0 is normal, 1 is insulin resistant,
             # while 2 is for patients that are insulin sensitive
 
-
-            patient_meals = patient_info.get("meals") # list of ordered timestamps
-
-
             # Analyze the glucose value and decide on the action.
             response = {}
             if glucose >= fasting_threshold: # high glycemia
@@ -203,16 +199,15 @@ class ThresholdAnalyzer:
                 if glucose >= severe_hyperglycemia:
                     response["message"] += (f"Your blood glucose level is dangerously high. "
                                            f"Please, take your insulin dose and, then, contact your doctor.\n")
-                if len(patient_meals) != 0:
-                    fasting = await self.check_fasting(patient_info.get("userID")) # checks to see if the patient
+
+                has_eaten = self.check_fasting(patient_info.get("userID")) # checks to see if the patient
                     # has eaten in the previous 2 hours
-                else:
-                    fasting = True
+
                 insulin_dose = self.calculate_insulin_dose(glucose, target_glycemia, insulin_resistence)
                 response["action"] = "administer_insulin"
                 response["suggested_insulin_dose"] = insulin_dose
                 response["message"] += f"High glucose: ({glucose} mg/dL).\n"
-                if fasting:
+                if has_eaten:
                     response["message"] += (f"Unless you have eaten in the last 2 hours, the recommended insulin dose is: {insulin_dose:.1f} unit/-s.\n"
                                             f"Otherwise, if you actually have eaten, take half of the recommended dose: {0.5*insulin_dose:.1f} unit/-s.\n")
                 else:
