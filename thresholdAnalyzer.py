@@ -108,7 +108,7 @@ class ThresholdAnalyzer:
             read_api_key = thingspeak_info.get("apikeys", [None])[0]
 
             if not channel_id or not read_api_key:
-                logging.error(f"Missing ThingSpeak info for patient {patient_info}")
+                logging.error(f"Missing ThingSpeak info for patient {patient_info['userID']}")
                 return False
 
             # Calculate timeframe (last 2 hours)
@@ -119,11 +119,11 @@ class ThresholdAnalyzer:
             params = {
                 "api_key": read_api_key,
                 "results": 100,  # Get last 100 entries (adjust as needed)
-                "start": since_time.isoformat(),
-                "end": now.isoformat()
+                "start": since_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "end": now.strftime("%Y-%m-%dT%H:%M:%SZ")
             }
 
-            url = f"{self.thingspeak_base}/channels/{channel_id}/feeds.json"
+            url = self.thingspeak_base.replace("{channel_id}", channel_id).replace("{field_number}", "2")
 
             response = requests.get(url, params=params, timeout=10.0)
 
@@ -249,20 +249,24 @@ class ThresholdAnalyzer:
             response["timestamp"] = timestamp
             response["device_id"] = device_id
 
+            patient_id = patient_info["userID"]
+            response["patientID"] = patient_id
+
             # Publish the response to the MQTT topic where the patient’s Telegram bot listens.
-            self.publish_response(response)
+            self.publish_response(response, patient_id)
 
         except Exception as e:
             logging.error(f"Error processing received message: {e}")
 
 
-    def publish_response(self, response):
+    def publish_response(self, response, patient_id):
         """
         Publishes the response message (with the determined action) to the MQTT topic.
         """
         try:
+            topic = self.topic_response.replace("{patient_id}", patient_id)
             payload = json.dumps(response)
-            self.client.publish(self.topic_response, payload)
+            self.client.publish(topic, payload)
             logging.info(f"Published response on topic {self.topic_response}: {payload}")
         except Exception as e:
             logging.error(f"Error publishing response: {e}")
