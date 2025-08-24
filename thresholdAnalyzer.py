@@ -1,28 +1,28 @@
-import json, requests, logging, cherrypy, math, httpx
+import json, requests, logging, cherrypy, math
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta, timezone
 
 # print info for troubleshooting
 logging.basicConfig(level=logging.INFO)
 
-catalog_url = "http://localhost:9080"
-
 
 class ThresholdAnalyzer:
     exposed = True
     def __init__(self, catalog):
+        self.catalogURL = catalog
+
         # Extract MQTT broker and port
-        response = requests.get(f"{catalog}/broker", timeout=5)
+        response = requests.get(f"{self.catalogURL}/broker", timeout=5)
         if response.status_code == 200:
             self.broker = response.json()
-            self.mqtt_broker = self.broker["ID"]
+            self.mqtt_broker = self.broker["IP"]
             self.mqtt_port = self.broker["port"]
         else:
             raise Exception(f"Failed to fetch broker: {response.status_code}")
 
 
         # Extract the topics for the threshold analyzer from the catalog
-        response = requests.get(f"{catalog}/services/ThresholdAnalyzer", timeout=5)
+        response = requests.get(f"{self.catalogURL}/services/ThresholdAnalyzer", timeout=5)
         if response.status_code == 200:
             service = response.json()
             self.topic_glucose = service["MQTT_sub"][0]
@@ -32,7 +32,7 @@ class ThresholdAnalyzer:
 
 
         # Extract Thingspeak endpoint
-        response = requests.get(f"{catalog}/services/ThingspeakAdaptor", timeout=5)
+        response = requests.get(f"{self.catalogURL}/services/ThingspeakAdaptor", timeout=5)
         if response.status_code == 200:
             service = response.json()
             self.thingspeak_base = service["REST_endpoint"]
@@ -45,6 +45,13 @@ class ThresholdAnalyzer:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
+        try: # attempt to connect to the broker
+            logging.info(f"Connecting to MQTT broker at {self.mqtt_broker}:{self.mqtt_port}...")
+            self.client.connect(self.mqtt_broker, self.mqtt_port, 60)
+            self.client.loop_start()
+        except Exception as exc:
+            logging.error(f"MQTT connection error: {exc}")
+
 
     def GET(self):
         return "The Threshold Analyzer is running"
@@ -52,18 +59,24 @@ class ThresholdAnalyzer:
 
     # Retrieve patient information from the Thingspeak service
     def get_patient_info(self, device_id): # the device ID is posted by the sensor itself inside the MQTT topic
-        url = f"{self.thingspeak_base}/patients/{device_id}"
         try:
-            response = requests.get(url, timeout=5)
+            response = requests.get(f"{self.catalogURL}/patients", timeout=5)
             if response.status_code == 200:
-                data = response.json()
-                logging.info(f"Retrieved patient info: {data}")
-                return data
-            else:
-                logging.error(f"Error retrieving patient info, status code: {response.status_code}")
+                patients = response.json()
+
+                # Find the patient that has this device
+                for patient in patients:
+                    for device in patient.get("connected_devices", []):
+                        if device.get("deviceID") == device_id:
+                            return patient
+
+                logging.error(f"No patient found with device ID: {device_id}")
                 return None
-        except Exception as exc:
-            logging.error(f"Exception retrieving patient info: {exc}")
+            else:
+                logging.error(f"Error retrieving patients list: {response.status_code}")
+                return None
+        except Exception as e:
+            logging.error(f"Exception retrieving patients list: {e}")
             return None
 
 
@@ -79,29 +92,23 @@ class ThresholdAnalyzer:
 
 
     # returns true only if the patient has not eaten in 2 hours
-    async def check_fasting(self, patient_id: str) -> bool:
+    def check_fasting(self, patient_info) -> bool:
         """
         Check if the patient has eaten recently by querying ThingSpeak for meal data.
 
         Args:
-            patient_id (str): The patient's unique identifier
+            patient_info: The patient's unique identifier
 
         Returns:
             bool: True if patient has eaten in the last 2 hours (not fasting), False otherwise
         """
         try:
-            # First get patient info to access their ThingSpeak channel
-            patient_info = self.get_patient_info(patient_id)
-            if not patient_info:
-                logging.error(f"Could not retrieve patient info for {patient_id}")
-                return False
-
             thingspeak_info = patient_info.get("thingspeak_info", {})
             channel_id = thingspeak_info.get("channel")
             read_api_key = thingspeak_info.get("apikeys", [None])[0]
 
             if not channel_id or not read_api_key:
-                logging.error(f"Missing ThingSpeak info for patient {patient_id}")
+                logging.error(f"Missing ThingSpeak info for patient {patient_info}")
                 return False
 
             # Calculate timeframe (last 2 hours)
@@ -118,22 +125,21 @@ class ThresholdAnalyzer:
 
             url = f"{self.thingspeak_base}/channels/{channel_id}/feeds.json"
 
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url, params=params, timeout=10.0)
+            response = requests.get(url, params=params, timeout=10.0)
 
-                if response.status_code == 200:
-                    data = response.json()
-                    feeds = data.get("feeds", [])
+            if response.status_code == 200:
+                data = response.json()
+                feeds = data.get("feeds", [])
 
-                    # Field1 contains meal data (1 = eating, 0 = not eating)
-                    for feed in feeds:
-                        if feed.get("field1") == "1":
-                            return True  # Found a meal in the last 2 hours
+                # Field1 contains meal data (1 = eating, 0 = not eating)
+                for feed in feeds:
+                    if feed.get("field1") == "1":
+                        return True  # Found a meal in the last 2 hours
 
-                    return False  # No meals found in timeframe
-                else:
-                    logging.error(f"ThingSpeak returned {response.status_code}")
-                    return False
+                return False  # No meals found in timeframe
+            else:
+                logging.error(f"ThingSpeak returned {response.status_code}")
+                return False
 
         except Exception as e:
             logging.error(f"Error checking fasting status: {e}")
@@ -200,7 +206,7 @@ class ThresholdAnalyzer:
                     response["message"] += (f"Your blood glucose level is dangerously high. "
                                            f"Please, take your insulin dose and, then, contact your doctor.\n")
 
-                has_eaten = self.check_fasting(patient_info.get("userID")) # checks to see if the patient
+                has_eaten = self.check_fasting(patient_info) # checks to see if the patient
                     # has eaten in the previous 2 hours
 
                 insulin_dose = self.calculate_insulin_dose(glucose, target_glycemia, insulin_resistence)
@@ -208,13 +214,23 @@ class ThresholdAnalyzer:
                 response["suggested_insulin_dose"] = insulin_dose
                 response["message"] += f"High glucose: ({glucose} mg/dL).\n"
                 if has_eaten:
-                    response["message"] += (f"Unless you have eaten in the last 2 hours, the recommended insulin dose is: {insulin_dose:.1f} unit/-s.\n"
-                                            f"Otherwise, if you actually have eaten, take half of the recommended dose: {0.5*insulin_dose:.1f} unit/-s.\n")
+                    # System thinks patient has eaten recently
+                    response["message"] += (
+                        f"Our records indicate you've eaten in the last 2 hours. "
+                        f"Based on this, the recommended insulin dose is: {0.5 * insulin_dose:.1f} units.\n"
+                        f"If this is incorrect and you haven't actually eaten, please take the full dose: {insulin_dose:.1f} units.\n"
+                        f"Please ensure your meal records are accurate for future recommendations."
+                    )
+                    response["suggested_insulin_dose"] = 0.5 * insulin_dose
                 else:
-                    response["message"] += (f"According to the record you have eaten in the last 2 hours.\n"
-                                            f"Therefore, the recommended insulin dose is: {0.5*insulin_dose:.1f} unit/-s.\n"
-                                            f"If that is not the case and you have not, in fact, eaten in the last 2 hours,\n"
-                                            f"take double of the recommended dose: {insulin_dose:.1f} unit/-s.\n")
+                    # System thinks patient hasn't eaten recently (fasting)
+                    response["message"] += (
+                        f"Our records indicate you haven't eaten in the last 2 hours (fasting state). "
+                        f"Based on this, the recommended insulin dose is: {insulin_dose:.1f} units.\n"
+                        f"If this is incorrect and you have actually eaten, please take half the dose: {0.5 * insulin_dose:.1f} units.\n"
+                        f"Please ensure your meal records are accurate for future recommendations."
+                    )
+                    response["suggested_insulin_dose"] = insulin_dose
 
             elif glucose <= extreme_low: # extremely low glycemia
                 response["immediate_action"] = "contact_doctor"
@@ -251,17 +267,10 @@ class ThresholdAnalyzer:
         except Exception as e:
             logging.error(f"Error publishing response: {e}")
 
-    def main(self):
-        try: # attempt to connect to the broker
-            logging.info(f"Connecting to MQTT broker at {self.mqtt_broker}:{self.mqtt_port}...")
-            self.client.connect(self.mqtt_broker, self.mqtt_port, 60)
-            self.client.loop_forever()
-        except Exception as exc:
-            logging.error(f"MQTT connection error: {exc}")
-
 
 if __name__ == "__main__":
-    web_service = ThresholdAnalyzer(catalog_url)
+    catalogURL = "http://localhost:9080"
+    web_service = ThresholdAnalyzer(catalogURL)
     conf={
         '/':{
         'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
