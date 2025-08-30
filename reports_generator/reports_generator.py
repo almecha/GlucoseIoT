@@ -14,8 +14,10 @@ class ReportsGenerator(object):
     def __init__(self, catalog_file_path):
         # self.catalog_file_path = catalog_file_path
         # self.catalog = json.load(open(self.catalog_file_path, encoding='utf-8'))
+        self.catalog = "catalog"
         # self.patientList = self.catalog["patientsList"]
         # self.serviceDetails = self.catalog["serviceDetails"]
+        #self.base_url = requests.get(f"http://{self.catalog}/services/ThingspeakAdaptor").json()["REST_endpoint"]
         self.base_url = "http://127.0.0.1:8080/retrieve"  # Base URL for the REST API
         self.NUMBER_OF_ENTRIES_PER_REQUEST = 100
 
@@ -79,8 +81,9 @@ class ReportsGenerator(object):
         # if patientID not in range(len(self.patientList)):
         #     return "Error: Patient ID is not valid"
         # Fetch data from thingspeak
+        # CHANGE HERE RECENTLY TO WORK WITH CATALOG
         response = requests.get(
-            f"{self.base_url}?number_of_entries={self.NUMBER_OF_ENTRIES_PER_REQUEST}",
+            f"{self.base_url}/{patientID}?number_of_entries={self.NUMBER_OF_ENTRIES_PER_REQUEST}",
         )
         data = response.json()["feeds"]
         # Check if the DataFrame is empty
