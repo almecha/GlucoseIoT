@@ -5,7 +5,6 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6a4b94c-7469-42da-a1da-b76a92585004" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CATALOG.json" beforeDir="false" afterPath="$PROJECT_DIR$/CATALOG.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/thresholdAnalyzer.py" beforeDir="false" afterPath="$PROJECT_DIR$/thresholdAnalyzer.py" afterDir="false" />
     </list>

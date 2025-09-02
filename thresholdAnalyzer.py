@@ -123,7 +123,7 @@ class ThresholdAnalyzer:
                 "end": now.strftime("%Y-%m-%dT%H:%M:%SZ")
             }
 
-            url = self.thingspeak_base.replace("{channel_id}", channel_id).replace("{field_number}", "2")
+            url = f"{self.thingspeak_base}/channels/{channel_id}/fields/1.json"
 
             response = requests.get(url, params=params, timeout=10.0)
 
@@ -273,7 +273,7 @@ class ThresholdAnalyzer:
 
 
 if __name__ == "__main__":
-    catalogURL = "http://localhost:9080"
+    catalogURL = os.getenv("CATALOG_URL", "http://localhost:9080")
     web_service = ThresholdAnalyzer(catalogURL)
     conf={
         '/':{

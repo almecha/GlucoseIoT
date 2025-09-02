@@ -76,7 +76,7 @@
         },
         {
             "serviceID": "ThingspeakAdaptor",
-            "REST_endpoint": "https://api.thingspeak.com/channels/{channel_id}/fields/{field_number}.json",
+            "REST_endpoint": "https://api.thingspeak.com",
             "MQTT_sub": [
                 "/glucose_level/patient_#"
             ],
