@@ -1,0 +1,42 @@
+# — Virtual environments —
+# Если вы используете venv/ или .venv/, просто оставьте эти строки
+venv/
+.venv/
+
+# В случае, если окружение лежит прямо в корне (bin/, lib/, include/, etc/, share/, pyvenv.cfg)
+bin/
+lib/
+include/
+share/
+etc/
+pyvenv.cfg
+# pip держит в корне этот файл
+pip-selfcheck.json
+
+# — Python bytecode —
+__pycache__/
+*.py[cod]
+*$py.class
+
+# — Распаковка/сборка пакетов —
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# — Jupyter —
+.ipynb_checkpoints/
+
+# — IDE / редакторы —
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# — Логи и временные файлы —
+*.log
+*.tmp
+
+# — Системные артефакты —
+.DS_Store
+Thumbs.db
