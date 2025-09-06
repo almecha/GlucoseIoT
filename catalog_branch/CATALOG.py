@@ -359,7 +359,16 @@ class Catalog:
             return json.dumps({"error": "Specify resource type and ID"}).encode('utf-8')
 
         resource_type = uri[0]
-        resource_id = uri[1]
+        resource_id_str = uri[1]
+        # Convertir a int para pacientes y doctores
+        try:
+            if resource_type in ["patients", "doctors"]:
+                resource_id = int(resource_id_str)
+            else:
+                resource_id = resource_id_str
+        except ValueError:
+            cherrypy.response.status = 400
+            return json.dumps({"error": f"Invalid ID format for {resource_type}"}).encode('utf-8')
         updated = False
 
         try:
@@ -476,6 +485,7 @@ class Catalog:
 
         resource_type = uri[0]
         resource_id = uri[1]
+        resource_id = int(resource_id) if resource_type in ["patients", "doctors"] else resource_id
         deleted = False
 
         try:

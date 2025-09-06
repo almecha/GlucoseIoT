@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "GlucoseIoT",
-    "lastUpdate": "2025-09-06 16:45:39",
+    "lastUpdate": "2025-09-06 20:57:16",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -30,7 +30,7 @@
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-06 16:45:32"
+            "timestamp": "2025-09-06 20:56:52"
         },
         {
             "serviceID": "DoctorTelegramBot",
@@ -109,7 +109,7 @@
             "MQTT_sub": [],
             "MQTT_pub": [],
             "description": "Telegram interface for doctors",
-            "timestamp": "2025-09-06 16:45:39"
+            "timestamp": "2025-09-06 20:56:59"
         },
         {
             "serviceID": "PatientBot_patient_001",
@@ -257,358 +257,6 @@
     ],
     "patientsList": [
         {
-            "userID": "patient_002",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Elisa",
-                "age": "8",
-                "ID_of_the_sensor": "S1"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
-                "target_glucose_level_excersise_premeal": 90.0,
-                "target_glucose_level_excersise_postmeal": 200.0,
-                "max_daily_amount_insulin": 40.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "S1"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_002_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-23 21:01:27"
-        },
-        {
-            "userID": "patient_005",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Flavia",
-                "age": null,
-                "ID_of_the_sensor": "S1"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
-                "target_glucose_level_excersise_premeal": 900.0,
-                "target_glucose_level_excersise_postmeal": 99.0,
-                "max_daily_amount_insulin": 1.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "S1"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_005_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-23 21:09:43"
-        },
-        {
-            "userID": "patient_006",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Fa",
-                "age": "",
-                "ID_of_the_sensor": "S2"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 3.0,
-                "target_glucose_level_excersise_premeal": 7.0,
-                "target_glucose_level_excersise_postmeal": 8.0,
-                "max_daily_amount_insulin": 6.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "S2"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_006_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-23 21:20:50"
-        },
-        {
-            "userID": "patient_008",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Sol",
-                "age": "",
-                "ID_of_the_sensor": "Sensoe3"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
-                "target_glucose_level_excersise_premeal": 10.0,
-                "target_glucose_level_excersise_postmeal": 30.0,
-                "max_daily_amount_insulin": 40.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "Sensoe3"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [
-                    "ABC"
-                ],
-                "channel": "455"
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_008_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-23 22:11:26"
-        },
-        {
-            "userID": "patient_020",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Victor",
-                "age": "50",
-                "ID_of_the_sensor": "S2"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
-                "target_glucose_level_excersise_premeal": 200.0,
-                "target_glucose_level_excersise_postmeal": 200.0,
-                "max_daily_amount_insulin": 4.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "S2"
-                }
-            ],
-            "telegram_chat_id": 5925787255,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_020_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-24 12:38:24"
-        },
-        {
-            "userID": "patient_09",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Matias",
-                "age": "",
-                "ID_of_the_sensor": "Sensor3"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
-                "target_glucose_level_excersise_premeal": 90.0,
-                "target_glucose_level_excersise_postmeal": 120.0,
-                "max_daily_amount_insulin": 1.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "Sensor3"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_09_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-23 22:19:33"
-        },
-        {
-            "userID": "patient_076",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Pedro",
-                "age": "",
-                "ID_of_the_sensor": "sensor_6"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
-                "target_glucose_level_excersise_premeal": 100.0,
-                "target_glucose_level_excersise_postmeal": 100.0,
-                "max_daily_amount_insulin": 10.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "sensor_6"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [
-                    "Abcdefg"
-                ],
-                "channel": "1018272"
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_076_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-23 22:22:56"
-        },
-        {
-            "userID": "patient_021",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Pablo",
-                "age": "57",
-                "ID_of_the_sensor": "Sensor4"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 200.0,
-                "target_glucose_level_excersise_premeal": 50.0,
-                "target_glucose_level_excersise_postmeal": 30.0,
-                "max_daily_amount_insulin": 2.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "Sensor4"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [
-                    "Aaa"
-                ],
-                "channel": "112"
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_021_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-24 12:29:07"
-        },
-        {
-            "userID": "patient_123838",
-            "role": "Patient",
-            "doctorID": "doctor_7950017752",
-            "user_information": {
-                "userName": "Sol",
-                "age": "",
-                "ID_of_the_sensor": "sensor_0292929"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 2000.0,
-                "target_glucose_level_excersise_premeal": 9000.0,
-                "target_glucose_level_excersise_postmeal": 12000.0,
-                "max_daily_amount_insulin": 50000.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "sensor_0292929"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_123838_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-07-24 12:46:33"
-        },
-        {
-            "userID": "patient_033",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "Pedro",
-                "age": "",
-                "ID_of_the_sensor": "sensor_033"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 100.0,
-                "target_glucose_level_excersise_premeal": 10.0,
-                "target_glucose_level_excersise_postmeal": 30.0,
-                "max_daily_amount_insulin": 20.0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "sensor_033"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_033_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-09-06 14:14:55"
-        },
-        {
-            "userID": "patient_077",
-            "role": "Patient",
-            "doctorID": "doctor_5925787255",
-            "user_information": {
-                "userName": "New Thresholds",
-                "age": "",
-                "ID_of_the_sensor": "sensor_077"
-            },
-            "threshold_parameters": {
-                "target_glucose_level_normal": 200.0,
-                "target_glucose_level_excersise_premeal": 20.0,
-                "target_glucose_level_excersise_postmeal": 30.0,
-                "max_daily_amount_insulin": 50.0,
-                "low_threshold": 50.0,
-                "extremely_low_threshold": 50.0,
-                "fasting_threshold": 50.0,
-                "severe_hyperglycemia_threshold": 50.0,
-                "insuline_resistence": 0
-            },
-            "connected_devices": [
-                {
-                    "deviceID": "sensor_077"
-                }
-            ],
-            "telegram_chat_id": null,
-            "thingspeak_info": {
-                "apikeys": [],
-                "channel": ""
-            },
-            "dashboard_info": {
-                "dashboard_username": "patient_077_dashboard",
-                "dashboard_password": null
-            },
-            "lastUpdate": "2025-09-06 15:11:39"
-        },
-        {
             "userID": 7,
             "role": "Patient",
             "doctorID": 380463055,
@@ -633,7 +281,7 @@
                     "deviceID": 6
                 }
             ],
-            "telegram_chat_id": null,
+            "telegram_chat_id": 5925787255,
             "thingspeak_info": {
                 "apikeys": [],
                 "channel": ""
@@ -642,7 +290,7 @@
                 "dashboard_username": "7_dashboard",
                 "dashboard_password": null
             },
-            "lastUpdate": "2025-09-06 16:31:17"
+            "lastUpdate": "2025-09-06 20:57:16"
         }
     ]
 }
