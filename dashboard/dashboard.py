@@ -47,6 +47,7 @@ def header(userName):
     st.badge("GlucoseIoT", icon="🩸", color="red")
 
 def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER_REQUEST):
+    # MAKE IT USE THE THIGNSPEAK ADAPTOR
     """
     Read JSON data from the Thingspeak channel via REST API.
     Called on page refresh.
@@ -62,6 +63,7 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
     st.error(f"Failed to fetch data. Status code: {response.status_code}")
     return None
 
+# CHECK THE REPORT AND ADAPT THE DASHVOARD TO IT
 def display_metrics(generatedReport):
     """
     To display relevant metrics on the dashboard.
@@ -69,11 +71,27 @@ def display_metrics(generatedReport):
     WILL BE REDONE LATER WITH REPORTS GENERATOR DATA
     """
     if generatedReport is not None:
-        col1, col2 = st.columns(2)  # Create a single row with two columns
+        col1, col2, col3 = st.columns(3)  # Create a single row with two columns
         with col1:
-            st.metric(label="Glucose Level (mg/dL)", value=generatedReport["glucose"])
+            st.metric(label="Average Glucose (mg/dL)", value=generatedReport["Average Glucose"])
         with col2:
-            st.metric(label="Age", value=generatedReport['age'])
+            st.metric(label="Minimum Glucose (mg/dL) ", value=generatedReport['Minimum Glucose'])
+        with col3:
+            st.metric(label="Maximum Glucose (mg/dL) ", value=generatedReport['Maximum Glucose'])
+
+        col4, col5 = st.columns(2)  # Create a single row with two columns
+        with col4:
+            st.metric(label="Coefficient of Variation (%)", value=generatedReport["Glucose Variability Metrics"]['Coefficient of Variation (CV)'])
+        with col5:
+            st.metric(label="Glucose Management Indicator (%)", value=generatedReport["Glucose Variability Metrics"]['Glucose Management Indicator (GMI)'])
+
+        col6,col7,col8 = st.columns(3)  # Create a single row with two columns
+        with col6:
+            st.metric(label="Time in Range (%)", value=generatedReport["Time in Range Metrics"]['Target (70-180 mg/dL)'])
+        with col7:
+            st.metric(label="Time Below Range (%)", value=generatedReport["Time in Range Metrics"]['Low (<70 mg/dL)'])
+        with col8:
+            st.metric(label="Time Above Range (%)", value=generatedReport["Time in Range Metrics"]['High (>180 mg/dL)'])
     else:
         st.warning("No data available to display metrics.")
 
@@ -108,6 +126,7 @@ def main_dash(patientID = 0, authenticator = None):
     header(userName)
 
     last_glucose_level = read_json_from_thingspeak(0,1)["field1"][0]  # Fetch data from Thingspeak channel
+    generatedReport = requests.get(f"")
     display_metrics({"glucose": float(last_glucose_level), "age": 25})
 
     display_plot() 
