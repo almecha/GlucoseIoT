@@ -1,5 +1,5 @@
 {
-    "catalogURL": "",
+    "catalogURL": "CATALOG.json",
     "ThingspeakWriteURL": "https://api.thingspeak.com/update?api_key=",
     "ThingspeakReadURL":  "https://api.thingspeak.com/channels",
     "ChannelID": "2971820",
