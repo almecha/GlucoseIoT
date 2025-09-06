@@ -89,7 +89,11 @@ class GlucoseIoTAuth:
         try:
             email_of_registered_user, \
             username_of_registered_user, \
-            _ = self.authenticator.register_user()
+            _ = self.authenticator.register_user(fields = {'Form name':'Register user', 'Email':'Email', 'Username':'Username',
+                      'Password':'Password', 'Repeat password':'Repeat password',
+                      'Password hint':'Password hint', 'Captcha':'Captcha', 'Register':'Register',
+                      'Dialog name':'Verification code', 'Code':'Code', 'Submit':'Submit',
+                      'Error':'Code is incorrect'})
             if email_of_registered_user:
                 st.success(f'User: {username_of_registered_user} registered successfully')
                 self._save_config()

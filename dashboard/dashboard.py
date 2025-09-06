@@ -14,13 +14,15 @@
 
 '''
 import json
+import yaml
 import requests
 import pandas as pd
+import cherrypy
 import streamlit as st
 from auth import GlucoseIoTAuth
 
-catalog = json.load(open('../catalog.json', encoding='utf-8'))
-patientList = catalog["patientsList"]
+# catalog = json.load(open('../catalog.json', encoding='utf-8'))
+# patientList = catalog["patientsList"]
 
 NUMBER_OF_ENTRIES_PER_REQUEST = 5
 USER_CHANNEL_ID = "2971820"
@@ -28,15 +30,58 @@ READ_API_KEY = "2YN0JR2LKQFAV3BI"
 BASE_URL = "https://api.thingspeak.com/channels"
 ACCESS_CODE = "1234"
 
-def user_api_keys(patient_id):
-    """
-    To extract user API keys from the catalog.
-    """
+# def user_api_keys(patient_id):
+#     """
+#     To extract user API keys from the catalog.
+#     """
 
-    if patient_id not in range(len(patientList)):
-        return "Error: Patient ID is not valid"
+#     if patient_id not in range(len(patientList)):
+#         return "Error: Patient ID is not valid"
     
-    return patientList[patient_id]["serviceDetails"]["Thingspeak"]["channelAPIkey"]
+#     return patientList[patient_id]["serviceDetails"]["Thingspeak"]["channelAPIkey"]
+
+
+@cherrypy.expose
+class Dashboard_REST_Worker(object):
+    def __init__(self):
+        #https://api.thingspeak.com/channels/2971820/fields/1.json?api_key=2YN0JR2LKQFAV3BI&results=2
+        self.config_file = yaml.safe_load(open('config.yaml'))
+        self.CONFIG_PATH = 'config.yaml'
+    
+    def POST(self, *uri, **params):
+        if len(uri) == 0:
+            return "No arguments provided"
+        
+        elif uri[0] ==  'register_dashboard':
+            try:
+                body = json.loads(cherrypy.request.body.read().decode("utf-8"))
+            except json.JSONDecodeError:
+                cherrypy.response.status = 400
+                return json.dumps({"error": "Invalid JSON body"}).encode('utf-8')
+            
+            self.config_file = yaml.safe_load(open(self.CONFIG_PATH))
+            # Here I want to validate the fields and create a new user in config.yaml
+            # Add/update user if provided
+            updated = {}
+            username = body.get("username")
+            fields = body.get("fields")
+            if username and isinstance(fields, dict):
+                user = self.config_file["credentials"]["usernames"].get(username, {})
+                user.update(fields)
+                self.config_file["credentials"]["usernames"][username] = user
+                updated["username"] = username
+                updated["user"] = user
+                if not updated:
+                    cherrypy.response.status = 400
+                    return json.dumps({"error": "Nothing to update (provide 'cookie' and/or 'username' + 'fields')"}).encode("utf-8")
+                # Save YAML back
+                with open(self.CONFIG_PATH, "w", encoding="utf-8") as f:
+                    yaml.safe_dump(self.config_file, f, sort_keys=False, allow_unicode=True)
+
+                return json.dumps({"status": "ok", **updated}).encode("utf-8")
+
+        else:
+                return "Unknown endpoint"
 
 def header(userName):
     """
@@ -71,29 +116,30 @@ def display_metrics(generatedReport):
     WILL BE REDONE LATER WITH REPORTS GENERATOR DATA
     """
     if generatedReport is not None:
-        col1, col2, col3 = st.columns(3)  # Create a single row with two columns
-        with col1:
-            st.metric(label="Average Glucose (mg/dL)", value=generatedReport["Average Glucose"])
-        with col2:
-            st.metric(label="Minimum Glucose (mg/dL) ", value=generatedReport['Minimum Glucose'])
-        with col3:
-            st.metric(label="Maximum Glucose (mg/dL) ", value=generatedReport['Maximum Glucose'])
+        st.subheader("Key Metrics")
+        # col1, col2, col3 = st.columns(3)  # Create a single row with two columns
+        # with col1:
+        #     st.metric(label="Average Glucose (mg/dL)", value=generatedReport["Average Glucose"])
+        # with col2:
+        #     st.metric(label="Minimum Glucose (mg/dL) ", value=generatedReport['Minimum Glucose'])
+        # with col3:
+        #     st.metric(label="Maximum Glucose (mg/dL) ", value=generatedReport['Maximum Glucose'])
 
-        col4, col5 = st.columns(2)  # Create a single row with two columns
-        with col4:
-            st.metric(label="Coefficient of Variation (%)", value=generatedReport["Glucose Variability Metrics"]['Coefficient of Variation (CV)'])
-        with col5:
-            st.metric(label="Glucose Management Indicator (%)", value=generatedReport["Glucose Variability Metrics"]['Glucose Management Indicator (GMI)'])
+        # col4, col5 = st.columns(2)  # Create a single row with two columns
+        # with col4:
+        #     st.metric(label="Coefficient of Variation (%)", value=generatedReport["Glucose Variability Metrics"]['Coefficient of Variation (CV)'])
+        # with col5:
+        #     st.metric(label="Glucose Management Indicator (%)", value=generatedReport["Glucose Variability Metrics"]['Glucose Management Indicator (GMI)'])
 
-        col6,col7,col8 = st.columns(3)  # Create a single row with two columns
-        with col6:
-            st.metric(label="Time in Range (%)", value=generatedReport["Time in Range Metrics"]['Target (70-180 mg/dL)'])
-        with col7:
-            st.metric(label="Time Below Range (%)", value=generatedReport["Time in Range Metrics"]['Low (<70 mg/dL)'])
-        with col8:
-            st.metric(label="Time Above Range (%)", value=generatedReport["Time in Range Metrics"]['High (>180 mg/dL)'])
-    else:
-        st.warning("No data available to display metrics.")
+        # col6,col7,col8 = st.columns(3)  # Create a single row with two columns
+        # with col6:
+        #     st.metric(label="Time in Range (%)", value=generatedReport["Time in Range Metrics"]['Target (70-180 mg/dL)'])
+        # with col7:
+        #     st.metric(label="Time Below Range (%)", value=generatedReport["Time in Range Metrics"]['Low (<70 mg/dL)'])
+        # with col8:
+        #     st.metric(label="Time Above Range (%)", value=generatedReport["Time in Range Metrics"]['High (>180 mg/dL)'])
+    # else:
+    #     st.warning("No data available to display metrics.")
 
 
 def display_plot():
@@ -126,20 +172,20 @@ def main_dash(patientID = 0, authenticator = None):
     header(userName)
 
     last_glucose_level = read_json_from_thingspeak(0,1)["field1"][0]  # Fetch data from Thingspeak channel
-    generatedReport = requests.get(f"")
+    # generatedReport = requests.get(f"")
     display_metrics({"glucose": float(last_glucose_level), "age": 25})
 
     display_plot() 
 
-def username_to_id(userName):
-    """
-    Convert username to patient ID.
-    """
-    for patient in patientList:
-        if patient['userName'] == userName:
-            return patient['patientID']
-    st.error("User not found in the catalog.")
-    return None
+# def username_to_id(userName):
+#     """
+#     Convert username to patient ID.
+#     """
+#     for patient in patientList:
+#         if patient['userName'] == userName:
+#             return patient['patientID']
+#     st.error("User not found in the catalog.")
+#     return None
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Dashboard", layout="wide")
@@ -147,5 +193,18 @@ if __name__ == "__main__":
     authenticator.login_feature() 
     if not st.session_state.get('authentication_status'):
         st.stop()  # Stop execution if not authenticated
+
+    rest_worker = Dashboard_REST_Worker()
+    # Start the REST worker (CherryPy server)
+    #Standard configuration to serve the url "localhost:8080"
+    conf={
+    '/':{
+    'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
+    'tools.sessions.on':True
+    }
+    }
+    cherrypy.tree.mount(rest_worker,'/',conf)
+    cherrypy.config.update({'server.socket_port':8090})
+    cherrypy.engine.start()
 
     main_dash(authenticator= authenticator)  # Run the main dashboard function

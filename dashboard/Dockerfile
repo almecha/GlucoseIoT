@@ -16,7 +16,7 @@ COPY auth.py .
 COPY config.yaml .
 
 # Exponer el puerto en el que escucha el servicio
-EXPOSE 9080
+EXPOSE 9070
 
 # Comando para ejecutar el servicio cuando el contenedor se inicie
-CMD ["python3", "CATALOG.py"]
+CMD ["python3", "dashboard.py"]
