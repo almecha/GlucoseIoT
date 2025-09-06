@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Conversation states
 ASK_NAME, ASK_ROLE = range(2)  # Doctor registration
-PATIENT_NAME, PATIENT_ID, AGE,SENSOR_ID, GLUCOSE_NORMAL, GLUCOSE_PREMEAL, GLUCOSE_POSTMEAL, INSULIN_MAX = range(2, 10)
+PATIENT_NAME, PATIENT_ID, AGE,SENSOR_ID, GLUCOSE_NORMAL, GLUCOSE_PREMEAL, GLUCOSE_POSTMEAL, INSULIN_MAX, LOW_THRESHOLD, EXTREMELY_LOW_THRESHOLD, FASTING_THRESHOLD, SEVERE_HYPERGLYCEMIA_THRESHOLD, INSULINE_RESISTENCE = range(2, 15)
 EDIT_CHOICE, EDIT_VALUE = range(10, 12)  # Patient editing states
 
 class DoctorBot:
@@ -239,7 +239,6 @@ class DoctorBot:
         await update.message.reply_text("📅 Please enter the patient's age:")
         return AGE
 
-
     async def get_sensor_id(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['sensor_id'] = update.message.text
         await update.message.reply_text("Please enter the normal glucose threshold (e.g., 100):")
@@ -274,27 +273,110 @@ class DoctorBot:
         except ValueError:
             await update.message.reply_text("❌ Please enter a valid number:")
             return GLUCOSE_POSTMEAL
-
-    async def complete_patient_registration(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        
+    async def get_insulin_max(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             value = float(update.message.text)
             context.user_data['insulin_max'] = value
+            await update.message.reply_text("Please enter the low threshold (e.g., 80.0):")
+            return LOW_THRESHOLD
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number for insulin max:")
+            return INSULIN_MAX
+
+        
+    # - adding new thresholds
+    
+    async def get_low_threshold(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            value = float(update.message.text)
+            context.user_data['low_threshold'] = value
+            await update.message.reply_text("Please enter the extremely low threshold (e.g., 54.0):")
+            return EXTREMELY_LOW_THRESHOLD
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number:")
+            return LOW_THRESHOLD
+
+    async def get_extremely_low_threshold(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            value = float(update.message.text)
+            context.user_data['extremely_low_threshold'] = value
+            await update.message.reply_text("Please enter the fasting threshold (e.g., 160.0):")
+            return FASTING_THRESHOLD
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number:")
+            return EXTREMELY_LOW_THRESHOLD
+
+    async def get_fasting_threshold(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            value = float(update.message.text)
+            context.user_data['fasting_threshold'] = value
+            await update.message.reply_text("Please enter the severe hyperglycemia threshold (e.g., 240.0):")
+            return SEVERE_HYPERGLYCEMIA_THRESHOLD
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number:")
+            return FASTING_THRESHOLD
+
+    async def get_severe_hyperglycemia_threshold(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            value = float(update.message.text)
+            context.user_data['severe_hyperglycemia_threshold'] = value
+            await update.message.reply_text("Please enter the insulin resistance (0 or 1):")
+            return INSULINE_RESISTENCE
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number:")
+            return SEVERE_HYPERGLYCEMIA_THRESHOLD
+
+    async def get_insuline_resistence(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            value = int(update.message.text)
+            if value not in [0, 1]:
+                raise ValueError("Must be 0 or 1")
+            context.user_data['insuline_resistence'] = value
+            # Now complete the registration
+            return await self.complete_patient_registration(update, context)
+        except ValueError:
+            await update.message.reply_text("❌ Please enter 0 or 1:")
+            return INSULINE_RESISTENCE
+
+    async def complete_patient_registration(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            # Si venimos del paso insulin_max, procesamos ese valor
+            if 'insulin_max' not in context.user_data:
+                # Esto significa que venimos de get_insuline_resistence
+                value = int(update.message.text)
+                if value not in [0, 1]:
+                    raise ValueError("Must be 0 or 1")
+                context.user_data['insuline_resistence'] = value
+            else:
+                # Si venimos de insulin_max, entonces ya tenemos ese valor
+                # pero necesitamos establecer valores por defecto para los nuevos thresholds
+                context.user_data.setdefault('low_threshold', 80.0)
+                context.user_data.setdefault('extremely_low_threshold', 54.0)
+                context.user_data.setdefault('fasting_threshold', 160.0)
+                context.user_data.setdefault('severe_hyperglycemia_threshold', 240.0)
+                context.user_data.setdefault('insuline_resistence', 0)
             
-            # Prepare patient data
+            # Prepare patient data with all thresholds
             patient_data = {
                 "userID": context.user_data['patient_id'],
                 "role": "Patient",
                 "doctorID": context.user_data['doctor_id'],
                 "user_information": {
                     "userName": context.user_data['patient_name'],
-                    "age": context.user_data.get("age",""),  # Can be updated later
+                    "age": context.user_data.get("age", ""),
                     "ID_of_the_sensor": context.user_data['sensor_id']
                 },
                 "threshold_parameters": {
                     "target_glucose_level_normal": context.user_data['glucose_normal'],
                     "target_glucose_level_excersise_premeal": context.user_data['glucose_premeal'],
                     "target_glucose_level_excersise_postmeal": context.user_data['glucose_postmeal'],
-                    "max_daily_amount_insulin": context.user_data['insulin_max']
+                    "max_daily_amount_insulin": context.user_data['insulin_max'],
+                    "low_threshold": context.user_data.get('low_threshold', 80.0),
+                    "extremely_low_threshold": context.user_data.get('extremely_low_threshold', 54.0),
+                    "fasting_threshold": context.user_data.get('fasting_threshold', 160.0),
+                    "severe_hyperglycemia_threshold": context.user_data.get('severe_hyperglycemia_threshold', 240.0),
+                    "insuline_resistence": context.user_data.get('insuline_resistence', 0)
                 },
                 "connected_devices": [{"deviceID": context.user_data['sensor_id']}],
                 "telegram_chat_id": None,
@@ -305,6 +387,7 @@ class DoctorBot:
                 }
             }
 
+            # Resto del método permanece igual...
             # Register patient
             response = requests.post(
                 f"{self.catalog_url}/patients",
@@ -313,7 +396,7 @@ class DoctorBot:
             )
             
             if response.status_code == 201:
-                await update.message.reply_text(
+                success_message = (
                     f"✅ Patient registered successfully!\n\n"
                     f"Name: {context.user_data['patient_name']}\n"
                     f"ID: {context.user_data['patient_id']}\n"
@@ -322,8 +405,16 @@ class DoctorBot:
                     f"- Normal: {context.user_data['glucose_normal']}\n"
                     f"- Pre-meal exercise: {context.user_data['glucose_premeal']}\n"
                     f"- Post-meal exercise: {context.user_data['glucose_postmeal']}\n"
-                    f"- Max insulin: {context.user_data['insulin_max']}",
-                    reply_markup=self.main_menu(False)  # Adjust if master doctor
+                    f"- Max insulin: {context.user_data['insulin_max']}\n"
+                    f"- Low: {context.user_data.get('low_threshold', 80.0)}\n"
+                    f"- Extremely Low: {context.user_data.get('extremely_low_threshold', 54.0)}\n"
+                    f"- Fasting: {context.user_data.get('fasting_threshold', 160.0)}\n"
+                    f"- Severe Hyperglycemia: {context.user_data.get('severe_hyperglycemia_threshold', 240.0)}\n"
+                    f"- Insulin Resistance: {context.user_data.get('insuline_resistence', 0)}"
+                )
+                await update.message.reply_text(
+                    success_message,
+                    reply_markup=self.main_menu(False)
                 )
             else:
                 error = response.json().get("error", "Unknown error")
@@ -456,6 +547,11 @@ class DoctorBot:
                 f"📟 Sensor: {patient.get('user_information', {}).get('ID_of_the_sensor', 'N/A')}\n"
                 f"🩸 Glucose Thresholds:\n"
                 f"  - Normal: {patient.get('threshold_parameters', {}).get('target_glucose_level_normal', 'N/A')}\n"
+                f"  - Low: {patient.get('threshold_parameters', {}).get('low_threshold', 'N/A')}\n"
+                f"  - Extremely Low: {patient.get('threshold_parameters', {}).get('extremely_low_threshold', 'N/A')}\n"
+                f"  - Fasting: {patient.get('threshold_parameters', {}).get('fasting_threshold', 'N/A')}\n"
+                f"  - Severe Hyperglycemia: {patient.get('threshold_parameters', {}).get('severe_hyperglycemia_threshold', 'N/A')}\n"
+                f"  - Insulin Resistance: {patient.get('threshold_parameters', {}).get('insuline_resistence', 'N/A')}\n"
                 f"  - Pre-meal: {patient.get('threshold_parameters', {}).get('target_glucose_level_excersise_premeal', 'N/A')}\n"
                 f"  - Post-meal: {patient.get('threshold_parameters', {}).get('target_glucose_level_excersise_postmeal', 'N/A')}\n"
                 f"💉 Max Insulin: {patient.get('threshold_parameters', {}).get('max_daily_amount_insulin', 'N/A')}\n"
@@ -663,7 +759,12 @@ class DoctorBot:
             [InlineKeyboardButton("📟 Sensor ID", callback_data=f"edit_sensor_{patient_id}")],
             [InlineKeyboardButton("🩸 Glucose Thresholds", callback_data=f"edit_glucose_{patient_id}")],
             [InlineKeyboardButton("💉 Max Insulin", callback_data=f"edit_insulin_{patient_id}")],
-            [InlineKeyboardButton("📊 ThingSpeak Info", callback_data=f"edit_thingspeak_{patient_id}")],  # New button
+            [InlineKeyboardButton("📉 Low Threshold", callback_data=f"edit_low_{patient_id}")],
+            [InlineKeyboardButton("⚠️ Extremely Low", callback_data=f"edit_extremely_low_{patient_id}")],
+            [InlineKeyboardButton("🍽️ Fasting", callback_data=f"edit_fasting_{patient_id}")],
+            [InlineKeyboardButton("🚨 Severe Hyperglycemia", callback_data=f"edit_severe_hyper_{patient_id}")],
+            [InlineKeyboardButton("💊 Insulin Resistance", callback_data=f"edit_insulin_res_{patient_id}")],
+            [InlineKeyboardButton("📊 ThingSpeak Info", callback_data=f"edit_thingspeak_{patient_id}")],
             [InlineKeyboardButton("✅ Finish Editing", callback_data=f"finish_edit_{patient_id}")],
             [InlineKeyboardButton("🔙 Back", callback_data=f"patient_{patient_id}")]
         ])
@@ -736,6 +837,32 @@ class DoctorBot:
                 await query.edit_message_text("💉 Enter new maximum daily insulin amount:")
                 context.user_data['edit_field'] = 'insulin_max'
                 return EDIT_VALUE
+            
+            # new thresholds
+            elif data.startswith("edit_low_"):
+                await query.edit_message_text("📉 Enter new low threshold:")
+                context.user_data['edit_field'] = 'low_threshold'
+                return EDIT_VALUE
+                
+            elif data.startswith("edit_extremely_low_"):
+                await query.edit_message_text("⚠️ Enter new extremely low threshold:")
+                context.user_data['edit_field'] = 'extremely_low_threshold'
+                return EDIT_VALUE
+                
+            elif data.startswith("edit_fasting_"):
+                await query.edit_message_text("🍽️ Enter new fasting threshold:")
+                context.user_data['edit_field'] = 'fasting_threshold'
+                return EDIT_VALUE
+                
+            elif data.startswith("edit_severe_hyper_"):
+                await query.edit_message_text("🚨 Enter new severe hyperglycemia threshold:")
+                context.user_data['edit_field'] = 'severe_hyperglycemia_threshold'
+                return EDIT_VALUE
+                
+            elif data.startswith("edit_insulin_res_"):
+                await query.edit_message_text("💊 Enter new insulin resistance (0 or 1):")
+                context.user_data['edit_field'] = 'insuline_resistence'
+                return EDIT_VALUE
                 
             elif data.startswith("edit_thingspeak_"):  # New case
                 patient = context.user_data.get('current_patient', {})
@@ -792,6 +919,25 @@ class DoctorBot:
                     return EDIT_VALUE
             elif field == 'insulin_max':
                 patient['threshold_parameters']['max_daily_amount_insulin'] = float(new_value)
+            # new thresholds
+            elif field == 'low_threshold':
+                patient['threshold_parameters']['low_threshold'] = float(new_value)
+            elif field == 'extremely_low_threshold':
+                patient['threshold_parameters']['extremely_low_threshold'] = float(new_value)
+            elif field == 'fasting_threshold':
+                patient['threshold_parameters']['fasting_threshold'] = float(new_value)
+            elif field == 'severe_hyperglycemia_threshold':
+                patient['threshold_parameters']['severe_hyperglycemia_threshold'] = float(new_value)
+            elif field == 'insuline_resistence':
+                try:
+                    value = int(new_value)
+                    if value not in [0, 1]:
+                        raise ValueError("Must be 0 or 1")
+                    patient['threshold_parameters']['insuline_resistence'] = value
+                except ValueError:
+                    await update.message.reply_text("❌ Invalid value. Please enter 0 or 1.")
+                    return EDIT_VALUE
+            
             elif field == 'thingspeak_info':  # New case
                 try:
                     # Expecting format: API_KEY CHANNEL_ID
@@ -898,7 +1044,12 @@ class DoctorBot:
                 GLUCOSE_NORMAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_glucose_normal)],
                 GLUCOSE_PREMEAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_glucose_premeal)],
                 GLUCOSE_POSTMEAL: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_glucose_postmeal)],
-                INSULIN_MAX: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.complete_patient_registration)]
+                INSULIN_MAX: [MessageHandler(filters.TEXT & ~filters.COMMAND,  self.get_insulin_max)],
+                LOW_THRESHOLD: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_low_threshold)],
+                EXTREMELY_LOW_THRESHOLD: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_extremely_low_threshold)],
+                FASTING_THRESHOLD: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_fasting_threshold)],
+                SEVERE_HYPERGLYCEMIA_THRESHOLD: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_severe_hyperglycemia_threshold)],
+                INSULINE_RESISTENCE: [MessageHandler(filters.TEXT & ~filters.COMMAND, self.get_insuline_resistence)]
             },
             fallbacks=[
                 CommandHandler('cancel', self.cancel_registration),
