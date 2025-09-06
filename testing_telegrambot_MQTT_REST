@@ -1,0 +1,50 @@
+import json
+import time
+from MyMQTT import MyMQTT
+
+class AlertSimulator:
+    def __init__(self, broker, port):
+        self.client = MyMQTT("alert_simulator", broker, port, None)
+        self.client.start()
+        
+    def send_alert(self, patient_id, message):
+        topic = f"/notifications/alert/patient_{patient_id}"
+        payload = {
+            "patient_id": patient_id,
+            "alert_message": message
+        }
+        self.client.myPublish(topic, payload)
+        print(f"Sent alert to {topic}: {payload}")
+        
+    def stop(self):
+        self.client.stop()
+
+if __name__ == "__main__":
+    # Configuration - should match your settings.json
+    broker = "broker.hivemq.com"
+    port = 1883
+    
+    # Test patient ID - should match a patient in your CATALOG.json
+    test_patient_id = "patient_020"
+    
+    # Initialize the simulator
+    simulator = AlertSimulator(broker, port)
+    
+    try:
+        print("Starting alert simulation...")
+        
+        # Test 1: Send a hypoglycemia alert
+        simulator.send_alert(test_patient_id, "Warning: Low glucose level detected! Take something sweet immediately.")
+        time.sleep(2)
+        
+        # Test 2: Send a hyperglycemia alert
+        simulator.send_alert(test_patient_id, "Warning: High glucose level detected! Consider taking 2 units of insulin.")
+        time.sleep(2)
+        
+        # Test 3: Send a return-to-normal alert
+        simulator.send_alert(test_patient_id, "Info: Glucose levels have returned to normal range.")
+        
+    except KeyboardInterrupt:
+        print("Stopping simulator...")
+    finally:
+        simulator.stop()
