@@ -1,0 +1,235 @@
+{
+  "patientsList": [
+    {
+      "userID": "patient_001",
+      "role": "Patient",
+      "doctorID": "doctor_5925787255",
+      "user_information": {
+        "userName": "Dario",
+        "age": "30",
+        "ID_of_the_sensor": "S2"
+      },
+      "threshold_parameters": {
+        "target_glucose_level_normal": 100.0,
+        "target_glucose_level_excersise_premeal": 90.0,
+        "target_glucose_level_excersise_postmeal": 200.0,
+        "max_daily_amount_insulin": 40.0,
+        "low_threshold": 80.0,
+        "extremely_low_threshold": 54.0,
+        "fasting_threshold": 160.0,
+        "severe_hyperglycemia_threshold": 240.0,
+        "insuline_resistence": 0
+      },
+      "connected_devices": [
+        {
+          "deviceID": "S2"
+        }
+      ],
+      "telegram_chat_id": null,
+      "thingspeak_info": {
+        "apikeys": [],
+        "channel": ""
+      },
+      "dashboard_info": {
+        "dashboard_username": "patient_001_dashboard",
+        "dashboard_password": null
+      },
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "userID": "patient_002",
+      "role": "Patient",
+      "doctorID": "doctor_5925787255",
+      "user_information": {
+        "userName": "Elisa",
+        "age": "8",
+        "ID_of_the_sensor": "S1"
+      },
+      "threshold_parameters": {
+        "target_glucose_level_normal": 100.0,
+        "target_glucose_level_excersise_premeal": 90.0,
+        "target_glucose_level_excersise_postmeal": 200.0,
+        "max_daily_amount_insulin": 40.0,
+        "low_threshold": 80.0,
+        "extremely_low_threshold": 54.0,
+        "fasting_threshold": 160.0,
+        "severe_hyperglycemia_threshold": 240.0,
+        "insuline_resistence": 0
+      },
+      "connected_devices": [
+        {
+          "deviceID": "S1"
+        }
+      ],
+      "telegram_chat_id": null,
+      "thingspeak_info": {
+        "apikeys": [],
+        "channel": ""
+      },
+      "dashboard_info": {
+        "dashboard_username": "patient_002_dashboard",
+        "dashboard_password": null
+      },
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "userID": "patient_021",
+      "role": "Patient",
+      "doctorID": "doctor_5925787255",
+      "user_information": {
+        "userName": "Diana",
+        "age": "18",
+        "ID_of_the_sensor": "S3"
+      },
+      "threshold_parameters": {
+        "target_glucose_level_normal": 100.0,
+        "target_glucose_level_excersise_premeal": 90.0,
+        "target_glucose_level_excersise_postmeal": 200.0,
+        "max_daily_amount_insulin": 40.0,
+        "low_threshold": null,
+        "extremely_low_threshold": null,
+        "fasting_threshold": null,
+        "severe_hyperglycemia_threshold": null,
+        "insuline_resistence": null
+      },
+      "connected_devices": [
+        {
+          "deviceID": "S3"
+        }
+      ],
+      "telegram_chat_id": null,
+      "thingspeak_info": {
+        "apikeys": [],
+        "channel": ""
+      },
+      "dashboard_info": {
+        "dashboard_username": "patient_021_dashboard",
+        "dashboard_password": null
+      },
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "userID": "patient_123838",
+      "role": "Patient",
+      "doctorID": "doctor_7950017752",
+      "user_information": {
+        "userName": "Santiago",
+        "age": "45",
+        "ID_of_the_sensor": "S5"
+      },
+      "threshold_parameters": {
+        "target_glucose_level_normal": 100.0,
+        "target_glucose_level_excersise_premeal": 90.0,
+        "target_glucose_level_excersise_postmeal": 200.0,
+        "max_daily_amount_insulin": 40.0,
+        "low_threshold": null,
+        "extremely_low_threshold": null,
+        "fasting_threshold": null,
+        "severe_hyperglycemia_threshold": null,
+        "insuline_resistence": null
+      },
+      "connected_devices": [
+        {
+          "deviceID": "S5"
+        }
+      ],
+      "telegram_chat_id": null,
+      "thingspeak_info": {
+        "apikeys": [],
+        "channel": ""
+      },
+      "dashboard_info": {
+        "dashboard_username": "patient_123838_dashboard",
+        "dashboard_password": null
+      },
+      "lastUpdate": "2025-07-23 21:01:27"
+    }
+  ],
+  "doctorsList": [
+    {
+      "userID": "doctor_5925787255",
+      "role": "Doctor",
+      "patients": [
+        "patient_001",
+        "patient_002",
+        "patient_021"
+      ],
+      "telegram_chat_id": null,
+      "dashboard_info": {
+        "dashboard_username": "doctor_5925787255_dashboard",
+        "dashboard_password": null
+      },
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "userID": "doctor_7950017752",
+      "role": "Doctor",
+      "patients": [
+        "patient_123838"
+      ],
+      "telegram_chat_id": null,
+      "dashboard_info": {
+        "dashboard_username": "doctor_7950017752_dashboard",
+        "dashboard_password": null
+      },
+      "lastUpdate": "2025-07-23 21:01:27"
+    }
+  ],
+  "servicesList": [
+    {
+      "serviceID": "Catalog",
+      "description": "This is the Catalog Service",
+      "endpoints": [
+        {
+          "type": "REST",
+          "url": "http://localhost:8080"
+        }
+      ],
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "serviceID": "ThingspeakAdaptor",
+      "description": "Adaptor for Thingspeak",
+      "endpoints": [
+        {
+          "type": "REST",
+          "url": "http://localhost:8082"
+        }
+      ],
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "serviceID": "ThresholdAnalyzer",
+      "description": "Analyzes glucose thresholds",
+      "endpoints": [
+        {
+          "type": "REST",
+          "url": "http://localhost:8083"
+        }
+      ],
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "serviceID": "ReportsGenerator",
+      "description": "Generates glucose reports",
+      "endpoints": [
+        {
+          "type": "REST",
+          "url": "http://localhost:8084"
+        }
+      ],
+      "lastUpdate": "2025-07-23 21:01:27"
+    },
+    {
+      "serviceID": "PatientBot_patient_001",
+      "description": "PatientBot for patient_001",
+      "endpoints": [
+        {
+          "type": "REST",
+          "url": "http://localhost:8085"
+        }
+      ],
+      "lastUpdate": "2025-07-23 21:01:27"
+    }
+  ]
+}

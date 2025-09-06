@@ -1,0 +1,39 @@
+# Catalog Service API
+
+## Doctors Management
+GET /doctors - List all doctors
+GET /doctors/{doctorID} - Get specific doctor details
+GET /doctors?telegram_chat_id={chat_id} - Find doctor by Telegram chat ID
+POST /doctors - Register new doctor (requires password_hash)
+PUT /doctors/{doctorID} - Update doctor information (cannot change role)
+DELETE /doctors/{doctorID} - Remove doctor (reassigns patients to MasterDoctor)
+
+## Patients Management
+GET /patients - List all patients
+GET /patients/{patientID} - Get specific patient details
+GET /patients?doctorID={doctorID} - List patients assigned to a doctor
+POST /patients - Register new patient (requires doctorID)
+PUT /patients/{patientID} - Update patient (handles doctor reassignment)
+DELETE /patients/{patientID} - Remove patient (removes from doctor's list)
+
+## Services Management
+GET /services - List all services
+GET /services/{serviceID} - Get specific service details
+POST /services - Register new service
+PUT /services/{serviceID} - Update service
+DELETE /services/{serviceID} - Remove service
+
+## Devices Management
+GET /devices - List all devices
+GET /devices/{deviceID} - Get specific device details
+POST /devices - Register new device
+PUT /devices/{deviceID} - Update device
+DELETE /devices/{deviceID} - Remove device
+
+## System Configuration
+GET /config - Get system configuration (catalog_url, broker, project info)
+GET /broker - Get MQTT broker details
+PUT /broker - Update MQTT broker details
+
+## Authentication
+POST /login - Doctor login (requires userID and password)
