@@ -79,7 +79,7 @@ class Catalog:
     @staticmethod
     def validate_service(data):
         required_fields = {
-            "serviceID": str,
+            "serviceID": int,
             "REST_endpoint": str,
             "MQTT_sub": list,
             "MQTT_pub": list,
@@ -100,7 +100,7 @@ class Catalog:
     @staticmethod
     def validate_doctor(data, is_post=True):
         required_fields = {
-            "userID": str,
+            "userID": int,
             "userName": str,
             "role": str,
             "telegram_chat_id": (int, type(None)),
@@ -117,9 +117,9 @@ class Catalog:
     @staticmethod
     def validate_patient(data):
         required_fields = {
-            "userID": str,
+            "userID": int,
             "role": str,
-            "doctorID": str,
+            "doctorID": int,
             "user_information": dict,
             "threshold_parameters": dict,
             "connected_devices": list,

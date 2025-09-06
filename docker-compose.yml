@@ -9,7 +9,7 @@ services:
       - glucose_network
 
   doctor_bot:
-    build: "./telegram_branch/Doctor's TelegramBot"
+    build: "./Doctor's TelegramBot"
     depends_on:
       - catalog
     networks:
@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
 
   patients_bot:
-    build: "./telegram_branch/Patient's TelegramBot"
+    build: "./Patient's TelegramBot"
     depends_on:
       - catalog
     networks:

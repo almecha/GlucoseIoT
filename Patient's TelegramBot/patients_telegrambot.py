@@ -205,11 +205,11 @@ class PatientTelegramBot:
     def register_service(self):
         service_info = {
             "serviceID": self.service_id,
-            "REST_endpoint": "",
-            "MQTT_sub": [self.mqtt_sub_template.format(PATIENT_ID="#")],
-            "MQTT_pub": [self.mqtt_pub_template.format(PATIENT_ID="#")],
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "description": "Telegram interface for patients"
+            "REST_endpoint": "",  # Usa string vacío como el doctor bot
+            "MQTT_sub": [],  # Usa array vacío como el doctor bot
+            "MQTT_pub": [],  # Usa array vacío como el doctor bot
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Elimina el campo "description" que el doctor bot no tiene
         }
         
         max_retries = 5
@@ -217,30 +217,26 @@ class PatientTelegramBot:
 
         for attempt in range(max_retries):
             try:
-                response = requests.get(f"{self.catalog_url}/services", params={"serviceID": service_info["serviceID"]}, timeout=5)
-                existing_service_list = response.json().get("services", []) if response.status_code == 200 else []
-
-                if existing_service_list:
-                    logger.info(f"Service {service_info['serviceID']} already registered in Catalog. Attempting to update timestamp.")
-                    response = requests.put(f"{self.catalog_url}/services/{service_info['serviceID']}", json={"timestamp": service_info["timestamp"]}, timeout=5)
-                    response.raise_for_status()
-                    logger.info(f"Service {service_info['serviceID']} timestamp updated successfully.")
+                # Usa PUT como el doctor bot en lugar de POST
+                response = requests.put(
+                    f"{self.catalog_url}/services/{self.service_id}",
+                    json=service_info,
+                    timeout=5
+                )
+                
+                if response.status_code in [200, 201]:
+                    logger.info(f"Service {self.service_id} registered/updated successfully with Catalog.")
+                    return True
+                elif response.status_code == 409:
+                    logger.warning(f"Service {self.service_id} already exists (409 Conflict).")
                     return True
                 else:
-                    logger.info(f"Service {service_info['serviceID']} not found in Catalog. Attempting to register.")
-                    response = requests.post(f"{self.catalog_url}/services", json=service_info, timeout=5)
-                    response.raise_for_status()
-                    logger.info(f"Service {service_info['serviceID']} registered successfully with Catalog.")
-                    return True
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 409:
-                    logger.warning(f"Service {service_info['serviceID']} already exists (409 Conflict). Skipping registration.")
-                    return True
-                logger.error(f"HTTP error during service registration: {e.response.status_code} - {e.response.text}")
+                    logger.error(f"HTTP error during service registration: {response.status_code} - {response.text}")
+                    
             except requests.exceptions.RequestException as e:
-                logger.error(f"Network error during service registration: {e}", exc_info=True)
+                logger.error(f"Network error during service registration: {e}")
             except Exception as e:
-                logger.error(f"Error during service registration: {e}", exc_info=True)
+                logger.error(f"Error during service registration: {e}")
             
             if attempt < max_retries - 1:
                 logger.warning(f"Retrying service registration in {retry_delay}s...")
