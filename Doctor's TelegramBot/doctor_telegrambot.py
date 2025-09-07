@@ -208,7 +208,31 @@ class DoctorBot:
             
             if response.status_code == 200 and response.json():
                 context.user_data['doctor_id'] = response.json()[0]["userID"]
-                await query.edit_message_text("Please enter the patient's full name:")
+                intro_message = ("➕📋 *Starting Patient Registration Process*\n\n"
+                "I will guide you through entering the following information:\n\n"
+                "👤 *Patient Details:*\n"
+                "  • Full name\n"
+                "  • ID number (identification document)\n" 
+                "  • Age\n\n"
+                "📟 *Device Information:*\n"
+                "  • Sensor ID\n\n"
+                "🩸 *Glucose Thresholds:*\n"
+                "  • Normal level\n"
+                "  • Pre-meal exercise level\n"
+                "  • Post-meal exercise level\n\n"
+                "💉 *Insulin Settings:*\n"
+                "  • Maximum daily amount\n\n"
+                "⚠️ *Alert Thresholds:*\n"
+                "  • Low glucose\n"
+                "  • Extremely low glucose\n"
+                "  • Fasting level\n"
+                "  • Severe hyperglycemia\n\n"
+                "🔬 *Medical Information:*\n"
+                "  • Insulin resistance status")
+                await query.edit_message_text(intro_message,parse_mode="Markdown")
+                await context.bot.send_message(
+                chat_id=chat_id,
+                text="\nPlease enter the patient's full name")
                 return PATIENT_NAME
             else:
                 await query.edit_message_text("❌ Doctor not found in system")
@@ -221,25 +245,34 @@ class DoctorBot:
 
     async def get_patient_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['patient_name'] = update.message.text
-        await update.message.reply_text("Please enter the patient ID (e.g., patient_001):")
+        await update.message.reply_text("Please enter the patient's ID number (identification document):")
         return PATIENT_ID
 
     async def get_patient_id(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         patient_id = update.message.text.strip()
-        patient_id = int(patient_id)
+        try:
+            patient_id = int(patient_id)
+            context.user_data['patient_id'] = patient_id
+            await update.message.reply_text("📅 Please enter the patient's age:")
+            return AGE
+        except ValueError:
+            await update.message.reply_text("❌ Patient ID must be a number. Please try again:")
+            return PATIENT_ID
 
-        # if not patient_id.startswith("patient_"):
-        #     await update.message.reply_text("❌ Patient ID must start with 'patient_'. Please try again:")
-        #     return PATIENT_ID
-            
-        context.user_data['patient_id'] = patient_id
-        await update.message.reply_text("Please enter the sensor ID (e.g., sensor_001):")
-        return SENSOR_ID
     
     async def ask_patient_age(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        context.user_data['name'] = update.message.text
-        await update.message.reply_text("📅 Please enter the patient's age:")
-        return AGE
+        try:
+            age = int(update.message.text.strip())
+            if age <= 0 or age > 120:
+                await update.message.reply_text("❌ Please enter a valid age (1-120):")
+                return AGE
+            
+            context.user_data['age'] = age
+            await update.message.reply_text("Please enter the sensor ID (e.g., 123):")
+            return SENSOR_ID
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number for age:")
+            return AGE
 
     async def get_sensor_id(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['sensor_id'] = int(update.message.text)
@@ -363,14 +396,20 @@ class DoctorBot:
                 context.user_data.setdefault('severe_hyperglycemia_threshold', 240.0)
                 context.user_data.setdefault('insuline_resistence', 0)
             
+            doctor_id_str = str(context.user_data['doctor_id'])
+            if 'doctor_' in doctor_id_str:
+                doctor_id = int(doctor_id_str.replace('doctor_', ''))
+            else:
+                doctor_id = int(doctor_id_str)
+            
             # Prepare patient data with all thresholds
             patient_data = {
                 "userID": context.user_data['patient_id'],  # Asegurar que sea string
                 "role": "Patient",
-                "doctorID": int(context.user_data['doctor_id']),
+                "doctorID": doctor_id,
                 "user_information": {
                     "userName": context.user_data['patient_name'],
-                    "age": context.user_data.get("age", ""),
+                    "age": context.user_data.get('age', ''),
                     "ID_of_the_sensor": context.user_data['sensor_id']  # Asegurar que sea string
                 },
                 "threshold_parameters": {
@@ -506,7 +545,16 @@ class DoctorBot:
                     return
                 
                 response = requests.get(f"{self.catalog_url}/patients")
+                if response.status_code == 200:
+                    patients = response.json()
+                else:
+                    patients = []
+                    await query.edit_message_text("❌ Could not fetch all patients")
+                    return
                 patients = response.json() if response.status_code == 200 else []
+                if not patients:
+                    await query.edit_message_text("There are no patients in the system yet.")
+                    return
                 message = "📋 All Patients:\n\n"
             
             # Create patient list

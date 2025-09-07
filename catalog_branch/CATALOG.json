@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "GlucoseIoT",
-    "lastUpdate": "2025-09-06 20:57:16",
+    "lastUpdate": "2025-09-07 09:50:18",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -30,7 +30,7 @@
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-06 20:56:52"
+            "timestamp": "2025-09-07 09:50:11"
         },
         {
             "serviceID": "DoctorTelegramBot",
@@ -109,7 +109,7 @@
             "MQTT_sub": [],
             "MQTT_pub": [],
             "description": "Telegram interface for doctors",
-            "timestamp": "2025-09-06 20:56:59"
+            "timestamp": "2025-09-07 09:50:18"
         },
         {
             "serviceID": "PatientBot_patient_001",
@@ -176,74 +176,6 @@
     ],
     "doctorsList": [
         {
-            "userID": "doctor_5955",
-            "userName": "Aa",
-            "role": "MasterDoctor",
-            "telegram_chat_id": 5925787246,
-            "password_hash": "$2b$12$2UzBm9xgegHG0Uim./JuAOfU2EUvnuc6PnDjSJDmWSjtOVjG2gTHS",
-            "patients_id": [
-                "patient_002",
-                "patient_005",
-                "patient_006"
-            ],
-            "lastUpdate": "2025-07-23 17:52:56"
-        },
-        {
-            "userID": "doctor_7746230713",
-            "userName": "Isabella",
-            "role": "Doctor",
-            "telegram_chat_id": 7746230713,
-            "password_hash": "$2b$12$OgOitwq3fTf/Dc7XgM.PXe7W32.AQ2iFTzv1QzVISleFcdgOsYlaS",
-            "patients_id": [],
-            "lastUpdate": "2025-07-23 21:27:08"
-        },
-        {
-            "userID": "doctor_175531185",
-            "userName": "N",
-            "role": "Doctor",
-            "telegram_chat_id": 175531185,
-            "password_hash": "$2b$12$1xiR6c7XOy77HBVY6t.DwOLMl3LI4hHhF1nz2V2kM.6Jz4TmdRZvW",
-            "patients_id": [],
-            "lastUpdate": "2025-07-23 21:31:36"
-        },
-        {
-            "userID": "doctor_5925787255",
-            "userName": "Soll",
-            "role": "Doctor",
-            "telegram_chat_id": 5925787255,
-            "password_hash": "$2b$12$gRz8lHkdYcDxks/zNCBmw.qbLj.9mQcHu/96RNGXDyYkxtsSEi3m6",
-            "patients_id": [
-                "patient_008",
-                "patient_020",
-                "patient_09",
-                "patient_076",
-                "patient_021",
-                "patient_033",
-                "patient_077"
-            ],
-            "lastUpdate": "2025-07-23 21:38:01"
-        },
-        {
-            "userID": "doctor_7879247318",
-            "userName": "Isabel Morales Posada",
-            "role": "Doctor",
-            "telegram_chat_id": 7879247318,
-            "password_hash": "$2b$12$RCgMWLlRJwB4lQZbWZLGxuhROrEj8ZnwcPYlClOo.nHQ8hArVe9.m",
-            "patients_id": [],
-            "lastUpdate": "2025-07-23 21:47:58"
-        },
-        {
-            "userID": "doctor_7950017752",
-            "userName": "Nicolas",
-            "role": "MasterDoctor",
-            "telegram_chat_id": 7950017752,
-            "password_hash": "$2b$12$5TBbKu9YGhlL/Cgija1P2eDFi5JG8KDZ/56TKlQL30FlpUUiu1w1e",
-            "patients_id": [
-                "patient_123838"
-            ],
-            "lastUpdate": "2025-07-24 12:44:22"
-        },
-        {
             "userID": 380463055,
             "userName": "Julio Cesar",
             "role": "MasterDoctor",
@@ -253,6 +185,18 @@
                 7
             ],
             "lastUpdate": "2025-09-06 16:30:18"
+        },
+        {
+            "userID": 5925787255,
+            "userName": "Master docc",
+            "role": "MasterDoctor",
+            "telegram_chat_id": 5925787255,
+            "password_hash": "$2b$12$P85F4D.F28ysPLKiCpx6G.Aad9PU1Uoc6zWyV6.27sikqR.HkSYYi",
+            "patients_id": [
+                23,
+                232323
+            ],
+            "lastUpdate": "2025-09-07 09:14:33"
         }
     ],
     "patientsList": [
@@ -291,6 +235,78 @@
                 "dashboard_password": null
             },
             "lastUpdate": "2025-09-06 20:57:16"
+        },
+        {
+            "userID": 23,
+            "role": "Patient",
+            "doctorID": 5925787255,
+            "user_information": {
+                "userName": "Juan",
+                "age": "",
+                "ID_of_the_sensor": 3
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 32.0,
+                "target_glucose_level_excersise_premeal": 32.0,
+                "target_glucose_level_excersise_postmeal": 32.0,
+                "max_daily_amount_insulin": 32.0,
+                "low_threshold": 32.0,
+                "extremely_low_threshold": 32.0,
+                "fasting_threshold": 32.0,
+                "severe_hyperglycemia_threshold": 32.0,
+                "insuline_resistence": 1
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 3
+                }
+            ],
+            "telegram_chat_id": null,
+            "thingspeak_info": {
+                "apikeys": [],
+                "channel": ""
+            },
+            "dashboard_info": {
+                "dashboard_username": "23_dashboard",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-07 09:15:07"
+        },
+        {
+            "userID": 232323,
+            "role": "Patient",
+            "doctorID": 5925787255,
+            "user_information": {
+                "userName": "Salvador",
+                "age": 23,
+                "ID_of_the_sensor": 23
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 23.0,
+                "target_glucose_level_excersise_premeal": 23.0,
+                "target_glucose_level_excersise_postmeal": 23.0,
+                "max_daily_amount_insulin": 23.0,
+                "low_threshold": 23.0,
+                "extremely_low_threshold": 23.0,
+                "fasting_threshold": 23.0,
+                "severe_hyperglycemia_threshold": 23.0,
+                "insuline_resistence": 1
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 23
+                }
+            ],
+            "telegram_chat_id": null,
+            "thingspeak_info": {
+                "apikeys": [],
+                "channel": ""
+            },
+            "dashboard_info": {
+                "dashboard_username": "232323_dashboard",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-07 09:36:09"
         }
     ]
 }
