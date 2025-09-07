@@ -15,22 +15,124 @@ services:
     networks:
       - glucose_network
     environment:
-      - INIT_DELAY=5  # Espera 5 segundos
+      - INIT_DELAY=5  
     restart: unless-stopped
 
   patients_bot:
     build: "./Patient's TelegramBot"
     depends_on:
       - catalog
+      - mqtt-broker
     networks:
       - glucose_network
     environment:
-      - PATIENT_ID=patient_001  # ID concreto en vez de genérico
-      - INIT_DELAY=10  # Espera 10 segundos (más que el doctor)
+      - INIT_DELAY=10  
     restart: always
     stdin_open: true  # Add these two lines
     tty: true
 
+  # MQTT Local Broker 
+  mqtt-broker:
+    image: eclipse-mosquitto:2.0
+    ports:
+      - "1883:1883"
+    networks:
+      - glucose_network
+    restart: unless-stopped
+
+  # Dashboard
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "3000:3000"  # React app port
+      #- "5000:5000"  # Backend API port (if needed)
+    depends_on:
+      - catalog
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+      #- REACT_APP_API_URL=http://localhost:5000/api
+    restart: unless-stopped
+
+  # Threshold Analyzer
+  threshold-analyzer:
+    build: ./threshold_analyser
+    depends_on:
+      - catalog
+      - mqtt-broker
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+    restart: unless-stopped
+
+  # Reports Generator
+  reports-generator:
+    build: ./reports_generator
+    depends_on:
+      - catalog
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+    ports:
+      - "9081:9081"  # API port for reports
+    restart: unless-stopped
+
+  # Thingspeak Adaptor
+  thingspeak-adaptor:
+    build: ./thingspeak_adaptor
+    depends_on:
+      - catalog
+      - mqtt-broker
+    networks:
+      - glucose_network
+    environment:
+      - BROKER_IP=mqtt-broker
+      - BROKER_PORT=1883
+      - CATALOG_URL=http://catalog:9080
+      - THINGSPEAK_API_KEY=your_thingspeak_api_key
+      - THINGSPEAK_CHANNEL_ID=your_channel_id
+    restart: unless-stopped
+
+  # Raspberry Pi Device Connector (Simulator)
+  device-connector:
+    build: ./device_connector
+    depends_on:
+      - catalog
+      - mqtt-broker
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+      - MQTT_BROKER=mqtt-broker
+      - MQTT_PORT=1883
+      - SIMULATION_MODE=true
+    restart: unless-stopped
+
 networks:
   glucose_network:
     driver: bridge
+
+
+# Initiate all services
+#docker-compose up -d
+
+# initiate specific services
+#docker-compose up -d mqtt-broker catalog doctor_bot patients_bot
+
+# see logs
+#docker-compose logs -f
+
+# stop
+#docker-compose down
+
+#endpoints:
+# Catalog: http://localhost:9080
+
+# Dashboard: http://localhost:3000
+
+# Reports API: http://localhost:9081
+
+# MQTT Broker: localhost:1883

@@ -773,9 +773,9 @@ if __name__ == "__main__":
         mqtt_pub_template = service_info.get("MQTT_pub", "/status/meal/patient_{PATIENT_ID}")
         client_id_template = service_info.get("clientID", "telegram_patient_bot_{PATIENT_ID}")
 
-        telegram_token = os.getenv("TELEGRAM_TOKEN", telegram_token)
+        telegram_token = os.getenv("TELEGRAM_TOKEN", telegram_token) # this looks at environment variable first, then at settings.json
         catalog_url = os.getenv("CATALOG_URL", catalog_url)
-        broker_ip = os.getenv("BROKER_IP", broker_ip)
+        broker_ip = os.getenv("BROKER_IP", broker_ip) 
         broker_port = int(os.getenv("BROKER_PORT", broker_port or 1883))
         service_id = os.getenv("SERVICE_ID", service_id)
         mqtt_sub_template = os.getenv("MQTT_SUB_TOPIC_TEMPLATE", mqtt_sub_template)
