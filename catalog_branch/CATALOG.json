@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "GlucoseIoT",
-    "lastUpdate": "2025-09-07 15:07:09",
+    "lastUpdate": "2025-09-08 13:57:17",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -30,7 +30,7 @@
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-07 15:06:58"
+            "timestamp": "2025-09-08 13:57:06"
         },
         {
             "serviceID": "DoctorTelegramBot",
@@ -109,7 +109,7 @@
             "MQTT_sub": [],
             "MQTT_pub": [],
             "description": "Telegram interface for doctors",
-            "timestamp": "2025-09-07 15:07:09"
+            "timestamp": "2025-09-08 13:57:17"
         },
         {
             "serviceID": "PatientBot_patient_001",
