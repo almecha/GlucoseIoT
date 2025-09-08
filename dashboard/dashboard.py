@@ -13,7 +13,9 @@
         Same credentials will be used.
 
 '''
+import atexit
 import json
+import threading
 import yaml
 import requests
 import pandas as pd
@@ -37,7 +39,6 @@ def user_api_keys(patient_id):
     """
 
     response = requests.get("http://0.0.0.0:9080/patients", params={"userID": patient_id})
-
     if response.status_code == 200:
         user_data = response.json()
         if user_data and "userID" in user_data:
@@ -57,7 +58,7 @@ class Dashboard_REST_Worker(object):
         if len(uri) == 0:
             return "No arguments provided"
         
-        elif uri[0] ==  'register_dashboard':
+        elif uri[0] ==  'dashboard' and uri[1] == 'register':
             try:
                 body = json.loads(cherrypy.request.body.read().decode("utf-8"))
             except json.JSONDecodeError:
@@ -106,6 +107,7 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
     Called on page refresh.
     """
     read_api_key = user_api_keys(patientID)
+    print("Read API Key:", read_api_key)
     url = f"{BASE_URL}/{USER_CHANNEL_ID}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
     response = requests.get(url, timeout=5)  # Send GET request to the URL
     
@@ -113,7 +115,8 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
         data = response.json()  # Parse JSON response
         df = pd.DataFrame(data['feeds'])  # Convert 'feeds' to DataFrame
         return df
-    st.error(f"Failed to fetch data. Status code: {response.status_code}")
+    
+    # st.warning(f"Failed to fetch data. Status code: {response.status_code}")
     return None
 
 
@@ -193,7 +196,9 @@ def display_plot():
     plot_placeholder = st.empty()
     patient_id = st.session_state.get('patientID', 0)
     df = read_json_from_thingspeak(patient_id)  # Fetch data from Thingspeak channel
-
+    if df is None or df.empty or 'field1' not in df:
+        st.warning("No glucose data available yet.")
+        return
     df['field1'] = pd.to_numeric(df['field1'], errors='coerce')  # Convert field1 to numeric
 
     plot_placeholder.line_chart(data = df,x ='created_at',y = "field1", x_label="time")  # Display line chart with the DataFrame
@@ -201,7 +206,7 @@ def display_plot():
     if st.button("Refresh Plot"):
         plot_placeholder.empty()
         st.write("Refreshing plot...")
-        df = read_json_from_thingspeak(0)
+        df = read_json_from_thingspeak(st.session_state["patientID"])  # Fetch updated data
         df['field1'] = pd.to_numeric(df['field1'], errors='coerce')  # Convert field1 to numeric
         #df['created_at'] = pd.to_datetime(df['created_at'])
         plot_placeholder.line_chart(data = df,x ='created_at',y = "field1", x_label="time")
@@ -213,15 +218,27 @@ def main_dash(patientID = 0, authenticator = None):
     """
     userName = st.session_state['username']
     st.session_state['patientID'] = username_to_id(userName)
+    print("Patient ID:", st.session_state['patientID'])
 
     authenticator.logout_button() 
     authenticator.reset_password_button() 
     header(userName)
 
-    last_glucose_level = read_json_from_thingspeak(st.session_state['patientID'],1)["field1"][0]  # Fetch data from Thingspeak channel
+    df = read_json_from_thingspeak(st.session_state['patientID'], 1)
+    if df is None or df.empty or 'field1' not in df:
+        st.warning("No glucose data available yet.")
+        last_glucose_level = None
+    else:
+        df['field1'] = pd.to_numeric(df['field1'], errors='coerce')
+        df = df.dropna(subset=['field1'])
+        last_glucose_level = df['field1'].iloc[0] if not df.empty else None  
+
     generatedReport = requests.get(f"http://127.0.0.1:8093/generate_report?patientID={st.session_state['patientID']}")
+    if generatedReport.status_code == 200:
+        display_metrics(generatedReport.json())
+    else:
+        st.warning("No report data available yet.")
     display_user_tresholds()
-    display_metrics(generatedReport.json() if generatedReport.status_code == 200 else None)
 
     display_plot() 
 
@@ -241,25 +258,45 @@ def username_to_id(userName):
             st.error("User not found in the catalog.")
     return None
 
+@st.cache_resource
+def start_cherrypy_once():
+    # Mount your app before starting
+    rest_worker = Dashboard_REST_Worker()
+
+    conf = {
+        '/': {
+            'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
+            'tools.sessions.on': True,
+        }
+    }
+    cherrypy.tree.mount(rest_worker, '/', conf)
+
+    cherrypy.config.update({
+        'server.socket_host': '0.0.0.0',   # or '127.0.0.1'
+        'server.socket_port': 8091,
+        'engine.autoreload.on': False,     # avoid CherryPy reload in Streamlit
+    })
+
+    # Start engine only if not already running
+    if not cherrypy.engine.state == cherrypy.engine.states.STARTED:
+        cherrypy.engine.start()
+
+        # Run the blocking loop in a background thread so Streamlit UI stays responsive
+        t = threading.Thread(target=cherrypy.engine.block, daemon=True)
+        t.start()
+
+        # Clean shutdown when Streamlit process exits
+        atexit.register(lambda: cherrypy.engine.exit())
+
+    return True
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Dashboard", layout="wide")
+    # Start CherryPy REST server (only once across reruns)
+    start_cherrypy_once()
     authenticator = GlucoseIoTAuth("config.yaml")
     authenticator.login_feature() 
     if not st.session_state.get('authentication_status'):
         st.stop()  # Stop execution if not authenticated
-
-    rest_worker = Dashboard_REST_Worker()
-    # Start the REST worker (CherryPy server)
-    #Standard configuration to serve the url "localhost:8080"
-    conf={
-    '/':{
-    'request.dispatch':cherrypy.dispatch.MethodDispatcher(),
-    'tools.sessions.on':True
-    }
-    }
-    cherrypy.tree.mount(rest_worker,'/',conf)
-    cherrypy.config.update({'server.socket_port':8091})
-    cherrypy.engine.start()
 
     main_dash(authenticator= authenticator)  # Run the main dashboard function

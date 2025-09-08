@@ -37,6 +37,15 @@ credentials:
       - admin
       - editor
       - viewer
+    leo_messi:
+      email: suka@gmail.com
+      failed_login_attempts: 0
+      first_name: Nurzhan
+      last_name: Mashina
+      logged_in: true
+      password: $2b$12$sHKDcJjuVlEIWUgeG2iReeAh3te7s54sXENDR3XdUOCCJPjXz6AYW
+      password_hint: Nuha1234!
+      roles: null
     luka:
       email: luke@gmail.com
       failed_login_attempts: 0
@@ -77,6 +86,10 @@ credentials:
       last_name: Briggs
       logged_in: false
       password: $2b$12$BYULCv.93t8jYbkgSBjCieBckKMQ3F.8U.BzT0WxKsD8ipXvqbs2y
+    shakira:
+      failed_login_attempts: 0
+      logged_in: true
+      password: $2b$12$8cvPAucP5lf3bSbw2UpZRuoIBcemYgodDXt4Z5UQoQCgyj9QH1vEi
     solseb:
       email: solseb@gmail.com
       failed_login_attempts: 0

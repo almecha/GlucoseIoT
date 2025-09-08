@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "GlucoseIoT",
-    "lastUpdate": "2025-09-08 15:55:43",
+    "lastUpdate": "2025-09-08 16:51:04",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -52,7 +52,7 @@
         },
         {
             "serviceID": "Dashboard",
-            "REST_endpoint": "glucoseiot/dashboard",
+            "REST_endpoint": "http://127.0.0.1:8091/dashboard/register",
             "MQTT_sub": [
                 "/notifications/alert/patient_#",
                 "/status/meal/patient_#",
@@ -109,7 +109,7 @@
             "MQTT_sub": [],
             "MQTT_pub": [],
             "description": "Telegram interface for doctors",
-            "timestamp": "2025-09-07 15:07:09"
+            "timestamp": "2025-09-08 16:41:29"
         },
         {
             "serviceID": "PatientBot_patient_001",
@@ -194,7 +194,9 @@
             "password_hash": "$2b$12$P85F4D.F28ysPLKiCpx6G.Aad9PU1Uoc6zWyV6.27sikqR.HkSYYi",
             "patients_id": [
                 23,
-                232323
+                232323,
+                101010,
+                303030
             ],
             "lastUpdate": "2025-09-07 09:14:33"
         }
@@ -307,6 +309,84 @@
                 "dashboard_password": null
             },
             "lastUpdate": "2025-09-07 09:36:09"
+        },
+        {
+            "userID": 101010,
+            "role": "Patient",
+            "doctorID": 5925787255,
+            "user_information": {
+                "userName": "Leooo Messi",
+                "age": 40,
+                "ID_of_the_sensor": 40
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 40.0,
+                "target_glucose_level_excersise_premeal": 40.0,
+                "target_glucose_level_excersise_postmeal": 40.0,
+                "max_daily_amount_insulin": 40.0,
+                "low_threshold": 40.0,
+                "extremely_low_threshold": 40.0,
+                "fasting_threshold": 40.0,
+                "severe_hyperglycemia_threshold": 40.0,
+                "insuline_resistence": 1
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 40
+                }
+            ],
+            "telegram_chat_id": null,
+            "thingspeak_info": {
+                "apikeys": [
+                    "JXQHPWH2PJQ542HQ",
+                    "CTKRXDJWG487PWHJ"
+                ],
+                "channel": "3066285"
+            },
+            "dashboard_info": {
+                "dashboard_username": "leooo_messi",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-08 16:28:35"
+        },
+        {
+            "userID": 303030,
+            "role": "Patient",
+            "doctorID": 5925787255,
+            "user_information": {
+                "userName": "Shakira",
+                "age": 30,
+                "ID_of_the_sensor": 30
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 30.0,
+                "target_glucose_level_excersise_premeal": 30.0,
+                "target_glucose_level_excersise_postmeal": 30.0,
+                "max_daily_amount_insulin": 30.0,
+                "low_threshold": 30.0,
+                "extremely_low_threshold": 30.0,
+                "fasting_threshold": 30.0,
+                "severe_hyperglycemia_threshold": 30.0,
+                "insuline_resistence": 1
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 30
+                }
+            ],
+            "telegram_chat_id": null,
+            "thingspeak_info": {
+                "apikeys": [
+                    "ETQA6VCLIRH60A9Q",
+                    "DDYCDBV16IY04JVW"
+                ],
+                "channel": "3066293"
+            },
+            "dashboard_info": {
+                "dashboard_username": "shakira",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-08 16:41:57"
         }
     ]
 }

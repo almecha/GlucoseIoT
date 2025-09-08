@@ -194,16 +194,22 @@ class Catalog:
                 response = self.catalog.get("patientsList", [])
                 if len(uri) > 1:
                     patientID = uri[1]
-                    response = next((p for p in response if p["userID"] == patientID), None)
+                    response = next(
+                                    (p for p in response if str(p.get("userID")) == str(patientID)),
+                                    None
+                                )
                 elif "userID" in params:
                     patientID = params["userID"]
-                    response = next((p for p in response if p["userID"] == patientID), None)
+                    response = next(
+                                    (p for p in response if str(p.get("userID")) == str(patientID)),
+                                    None
+                                )
                 elif "doctorID" in params:
                     doctorID = params["doctorID"]
                     response = [p for p in response if p.get("doctorID") == doctorID]
                 elif "username" in params:
                     username = params["username"]
-                    response = next((p for p in response if p["user_information"].get("userName") == username), None)
+                    response = next((p for p in response if p["dashboard_info"].get("dashboard_username") == username), None)
                 if not response and (len(uri) > 1 or "userID" in params):
                     cherrypy.response.status = 404
                     return json.dumps({"error": "Patient not found"}).encode('utf-8')
