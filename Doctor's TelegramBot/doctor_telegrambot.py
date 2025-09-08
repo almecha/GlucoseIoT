@@ -147,7 +147,7 @@ class DoctorBot:
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         doctor_data = {
-            "userID": f"doctor_{chat_id}",
+            "userID": chat_id,
             "userName": name,
             "role": role,
             "telegram_chat_id": chat_id,
@@ -208,7 +208,31 @@ class DoctorBot:
             
             if response.status_code == 200 and response.json():
                 context.user_data['doctor_id'] = response.json()[0]["userID"]
-                await query.edit_message_text("Please enter the patient's full name:")
+                intro_message = ("➕📋 *Starting Patient Registration Process*\n\n"
+                "I will guide you through entering the following information:\n\n"
+                "👤 *Patient Details:*\n"
+                "  • Full name\n"
+                "  • ID number (identification document)\n" 
+                "  • Age\n\n"
+                "📟 *Device Information:*\n"
+                "  • Sensor ID\n\n"
+                "🩸 *Glucose Thresholds:*\n"
+                "  • Normal level\n"
+                "  • Pre-meal exercise level\n"
+                "  • Post-meal exercise level\n\n"
+                "💉 *Insulin Settings:*\n"
+                "  • Maximum daily amount\n\n"
+                "⚠️ *Alert Thresholds:*\n"
+                "  • Low glucose\n"
+                "  • Extremely low glucose\n"
+                "  • Fasting level\n"
+                "  • Severe hyperglycemia\n\n"
+                "🔬 *Medical Information:*\n"
+                "  • Insulin resistance status")
+                await query.edit_message_text(intro_message,parse_mode="Markdown")
+                await context.bot.send_message(
+                chat_id=chat_id,
+                text="\nPlease enter the patient's full name")
                 return PATIENT_NAME
             else:
                 await query.edit_message_text("❌ Doctor not found in system")
@@ -221,26 +245,38 @@ class DoctorBot:
 
     async def get_patient_name(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['patient_name'] = update.message.text
-        await update.message.reply_text("Please enter the patient ID (e.g., patient_001):")
+        await update.message.reply_text("Please enter the patient's ID number (identification document):")
         return PATIENT_ID
 
     async def get_patient_id(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         patient_id = update.message.text.strip()
-        if not patient_id.startswith("patient_"):
-            await update.message.reply_text("❌ Patient ID must start with 'patient_'. Please try again:")
+        try:
+            patient_id = int(patient_id)
+            context.user_data['patient_id'] = patient_id
+            await update.message.reply_text("📅 Please enter the patient's age:")
+            return AGE
+        except ValueError:
+            await update.message.reply_text("❌ Patient ID must be a number. Please try again:")
             return PATIENT_ID
-            
-        context.user_data['patient_id'] = patient_id
-        await update.message.reply_text("Please enter the sensor ID (e.g., sensor_001):")
-        return SENSOR_ID
+
     
     async def ask_patient_age(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        context.user_data['name'] = update.message.text
-        await update.message.reply_text("📅 Please enter the patient's age:")
-        return AGE
+        try:
+            age = int(update.message.text.strip())
+            if age <= 0 or age > 120:
+                await update.message.reply_text("❌ Please enter a valid age (1-120):")
+                return AGE
+            
+            context.user_data['age'] = age
+            await update.message.reply_text("Please enter the sensor ID (e.g., 123):")
+            return SENSOR_ID
+        except ValueError:
+            await update.message.reply_text("❌ Please enter a valid number for age:")
+            return AGE
 
     async def get_sensor_id(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        context.user_data['sensor_id'] = update.message.text
+        context.user_data['sensor_id'] = int(update.message.text)
+        
         await update.message.reply_text("Please enter the normal glucose threshold (e.g., 100):")
         return GLUCOSE_NORMAL
 
@@ -341,6 +377,9 @@ class DoctorBot:
 
     async def complete_patient_registration(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
+            # Log the incoming message
+            logger.info(f"Received message: {update.message.text}")
+            
             # Si venimos del paso insulin_max, procesamos ese valor
             if 'insulin_max' not in context.user_data:
                 # Esto significa que venimos de get_insuline_resistence
@@ -357,15 +396,21 @@ class DoctorBot:
                 context.user_data.setdefault('severe_hyperglycemia_threshold', 240.0)
                 context.user_data.setdefault('insuline_resistence', 0)
             
+            doctor_id_str = str(context.user_data['doctor_id'])
+            if 'doctor_' in doctor_id_str:
+                doctor_id = int(doctor_id_str.replace('doctor_', ''))
+            else:
+                doctor_id = int(doctor_id_str)
+            
             # Prepare patient data with all thresholds
             patient_data = {
-                "userID": context.user_data['patient_id'],
+                "userID": context.user_data['patient_id'],  # Asegurar que sea string
                 "role": "Patient",
-                "doctorID": context.user_data['doctor_id'],
+                "doctorID": doctor_id,
                 "user_information": {
                     "userName": context.user_data['patient_name'],
-                    "age": context.user_data.get("age", ""),
-                    "ID_of_the_sensor": context.user_data['sensor_id']
+                    "age": context.user_data.get('age', ''),
+                    "ID_of_the_sensor": context.user_data['sensor_id']  # Asegurar que sea string
                 },
                 "threshold_parameters": {
                     "target_glucose_level_normal": context.user_data['glucose_normal'],
@@ -378,7 +423,7 @@ class DoctorBot:
                     "severe_hyperglycemia_threshold": context.user_data.get('severe_hyperglycemia_threshold', 240.0),
                     "insuline_resistence": context.user_data.get('insuline_resistence', 0)
                 },
-                "connected_devices": [{"deviceID": context.user_data['sensor_id']}],
+                "connected_devices": [{"deviceID": int(context.user_data['sensor_id'])}],  # Asegurar que sea string
                 "telegram_chat_id": None,
                 "thingspeak_info": {"apikeys": [], "channel": ""},
                 "dashboard_info": {
@@ -386,14 +431,22 @@ class DoctorBot:
                     "dashboard_password": None
                 }
             }
+            # En complete_patient_registration, antes de enviar al catálogo
+            logger.info(f"Patient data types: userID={type(context.user_data['patient_id'])}, doctorID={type(context.user_data['doctor_id'])}, sensor={type(context.user_data['sensor_id'])}")
+            logger.info(f"Patient data values: userID={context.user_data['patient_id']}, doctorID={context.user_data['doctor_id']}, sensor={context.user_data['sensor_id']}")
+            # Log the patient data being sent
+            logger.info(f"Sending patient data to catalog: {json.dumps(patient_data, indent=2)}")
 
-            # Resto del método permanece igual...
             # Register patient
             response = requests.post(
                 f"{self.catalog_url}/patients",
                 json=patient_data,
                 timeout=10
             )
+            
+            # Log the response
+            logger.info(f"Catalog response status: {response.status_code}")
+            logger.info(f"Catalog response text: {response.text}")
             
             if response.status_code == 201:
                 success_message = (
@@ -418,6 +471,7 @@ class DoctorBot:
                 )
             else:
                 error = response.json().get("error", "Unknown error")
+                logger.error(f"Failed to register patient: {error}")
                 await update.message.reply_text(
                     f"❌ Failed to register patient: {error}",
                     reply_markup=self.main_menu(False)
@@ -430,7 +484,7 @@ class DoctorBot:
                 reply_markup=self.main_menu(False)
             )
         except Exception as e:
-            logger.error(f"Unexpected error: {e}")
+            logger.error(f"Unexpected error in complete_patient_registration: {e}", exc_info=True)
             await update.message.reply_text(
                 "❌ An unexpected error occurred. Please try again.",
                 reply_markup=self.main_menu(False)
@@ -491,7 +545,16 @@ class DoctorBot:
                     return
                 
                 response = requests.get(f"{self.catalog_url}/patients")
+                if response.status_code == 200:
+                    patients = response.json()
+                else:
+                    patients = []
+                    await query.edit_message_text("❌ Could not fetch all patients")
+                    return
                 patients = response.json() if response.status_code == 200 else []
+                if not patients:
+                    await query.edit_message_text("There are no patients in the system yet.")
+                    return
                 message = "📋 All Patients:\n\n"
             
             # Create patient list

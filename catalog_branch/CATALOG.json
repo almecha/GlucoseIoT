@@ -1,235 +1,312 @@
 {
-  "patientsList": [
-    {
-      "userID": "patient_001",
-      "role": "Patient",
-      "doctorID": "doctor_5925787255",
-      "user_information": {
-        "userName": "Dario",
-        "age": "30",
-        "ID_of_the_sensor": "S2"
-      },
-      "threshold_parameters": {
-        "target_glucose_level_normal": 100.0,
-        "target_glucose_level_excersise_premeal": 90.0,
-        "target_glucose_level_excersise_postmeal": 200.0,
-        "max_daily_amount_insulin": 40.0,
-        "low_threshold": 80.0,
-        "extremely_low_threshold": 54.0,
-        "fasting_threshold": 160.0,
-        "severe_hyperglycemia_threshold": 240.0,
-        "insuline_resistence": 0
-      },
-      "connected_devices": [
-        {
-          "deviceID": "S2"
-        }
-      ],
-      "telegram_chat_id": null,
-      "thingspeak_info": {
-        "apikeys": [],
-        "channel": ""
-      },
-      "dashboard_info": {
-        "dashboard_username": "patient_001_dashboard",
-        "dashboard_password": null
-      },
-      "lastUpdate": "2025-07-23 21:01:27"
+    "catalog_url": "http://catalog:9080",
+    "projectOwners": [
+        "Luka Maksimovic",
+        "Sebastiano Natali",
+        "Sol Liendo",
+        "Nurzhan Aitaliyev"
+    ],
+    "project_name": "GlucoseIoT",
+    "lastUpdate": "2025-09-07 15:07:09",
+    "broker": {
+        "IP": "broker.hivemq.com",
+        "port": 1883
     },
-    {
-      "userID": "patient_002",
-      "role": "Patient",
-      "doctorID": "doctor_5925787255",
-      "user_information": {
-        "userName": "Elisa",
-        "age": "8",
-        "ID_of_the_sensor": "S1"
-      },
-      "threshold_parameters": {
-        "target_glucose_level_normal": 100.0,
-        "target_glucose_level_excersise_premeal": 90.0,
-        "target_glucose_level_excersise_postmeal": 200.0,
-        "max_daily_amount_insulin": 40.0,
-        "low_threshold": 80.0,
-        "extremely_low_threshold": 54.0,
-        "fasting_threshold": 160.0,
-        "severe_hyperglycemia_threshold": 240.0,
-        "insuline_resistence": 0
-      },
-      "connected_devices": [
+    "servicesList": [
         {
-          "deviceID": "S1"
-        }
-      ],
-      "telegram_chat_id": null,
-      "thingspeak_info": {
-        "apikeys": [],
-        "channel": ""
-      },
-      "dashboard_info": {
-        "dashboard_username": "patient_002_dashboard",
-        "dashboard_password": null
-      },
-      "lastUpdate": "2025-07-23 21:01:27"
-    },
-    {
-      "userID": "patient_021",
-      "role": "Patient",
-      "doctorID": "doctor_5925787255",
-      "user_information": {
-        "userName": "Diana",
-        "age": "18",
-        "ID_of_the_sensor": "S3"
-      },
-      "threshold_parameters": {
-        "target_glucose_level_normal": 100.0,
-        "target_glucose_level_excersise_premeal": 90.0,
-        "target_glucose_level_excersise_postmeal": 200.0,
-        "max_daily_amount_insulin": 40.0,
-        "low_threshold": null,
-        "extremely_low_threshold": null,
-        "fasting_threshold": null,
-        "severe_hyperglycemia_threshold": null,
-        "insuline_resistence": null
-      },
-      "connected_devices": [
+            "serviceID": "ThresholdAnalyzer",
+            "REST_endpoint": "glucoseiot/threshold",
+            "MQTT_sub": [
+                "/glucose_level/patient_#"
+            ],
+            "MQTT_pub": [
+                "/notifications/alert/patient_{patient_id}"
+            ],
+            "serviceDetails": [],
+            "timestamp": ""
+        },
         {
-          "deviceID": "S3"
-        }
-      ],
-      "telegram_chat_id": null,
-      "thingspeak_info": {
-        "apikeys": [],
-        "channel": ""
-      },
-      "dashboard_info": {
-        "dashboard_username": "patient_021_dashboard",
-        "dashboard_password": null
-      },
-      "lastUpdate": "2025-07-23 21:01:27"
-    },
-    {
-      "userID": "patient_123838",
-      "role": "Patient",
-      "doctorID": "doctor_7950017752",
-      "user_information": {
-        "userName": "Santiago",
-        "age": "45",
-        "ID_of_the_sensor": "S5"
-      },
-      "threshold_parameters": {
-        "target_glucose_level_normal": 100.0,
-        "target_glucose_level_excersise_premeal": 90.0,
-        "target_glucose_level_excersise_postmeal": 200.0,
-        "max_daily_amount_insulin": 40.0,
-        "low_threshold": null,
-        "extremely_low_threshold": null,
-        "fasting_threshold": null,
-        "severe_hyperglycemia_threshold": null,
-        "insuline_resistence": null
-      },
-      "connected_devices": [
+            "serviceID": "PatientTelegramBot",
+            "REST_endpoint": "",
+            "MQTT_sub": [],
+            "MQTT_pub": [],
+            "timestamp": "2025-09-07 15:06:58"
+        },
         {
-          "deviceID": "S5"
-        }
-      ],
-      "telegram_chat_id": null,
-      "thingspeak_info": {
-        "apikeys": [],
-        "channel": ""
-      },
-      "dashboard_info": {
-        "dashboard_username": "patient_123838_dashboard",
-        "dashboard_password": null
-      },
-      "lastUpdate": "2025-07-23 21:01:27"
-    }
-  ],
-  "doctorsList": [
-    {
-      "userID": "doctor_5925787255",
-      "role": "Doctor",
-      "patients": [
-        "patient_001",
-        "patient_002",
-        "patient_021"
-      ],
-      "telegram_chat_id": null,
-      "dashboard_info": {
-        "dashboard_username": "doctor_5925787255_dashboard",
-        "dashboard_password": null
-      },
-      "lastUpdate": "2025-07-23 21:01:27"
-    },
-    {
-      "userID": "doctor_7950017752",
-      "role": "Doctor",
-      "patients": [
-        "patient_123838"
-      ],
-      "telegram_chat_id": null,
-      "dashboard_info": {
-        "dashboard_username": "doctor_7950017752_dashboard",
-        "dashboard_password": null
-      },
-      "lastUpdate": "2025-07-23 21:01:27"
-    }
-  ],
-  "servicesList": [
-    {
-      "serviceID": "Catalog",
-      "description": "This is the Catalog Service",
-      "endpoints": [
+            "serviceID": "DoctorTelegramBot",
+            "REST_endpoint": "glucoseiot/telegram/doctor",
+            "MQTT_sub": [],
+            "MQTT_pub": [],
+            "timestamp": ""
+        },
         {
-          "type": "REST",
-          "url": "http://localhost:8080"
-        }
-      ],
-      "lastUpdate": "2025-07-23 21:01:27"
-    },
-    {
-      "serviceID": "ThingspeakAdaptor",
-      "description": "Adaptor for Thingspeak",
-      "endpoints": [
+            "serviceID": "ReportsGenerator",
+            "REST_endpoint": "glucoseiot/reports_generator",
+            "MQTT_sub": [
+                "/notifications/alert/patient_#",
+                "/status/meal/patient_#",
+                "/glucose_level/patient_#"
+            ],
+            "MQTT_pub": [],
+            "timestamp": ""
+        },
         {
-          "type": "REST",
-          "url": "http://localhost:8082"
-        }
-      ],
-      "lastUpdate": "2025-07-23 21:01:27"
-    },
-    {
-      "serviceID": "ThresholdAnalyzer",
-      "description": "Analyzes glucose thresholds",
-      "endpoints": [
+            "serviceID": "Dashboard",
+            "REST_endpoint": "glucoseiot/dashboard",
+            "MQTT_sub": [
+                "/notifications/alert/patient_#",
+                "/status/meal/patient_#",
+                "/glucose_level/patient_#"
+            ],
+            "MQTT_pub": [],
+            "timestamp": ""
+        },
         {
-          "type": "REST",
-          "url": "http://localhost:8083"
-        }
-      ],
-      "lastUpdate": "2025-07-23 21:01:27"
-    },
-    {
-      "serviceID": "ReportsGenerator",
-      "description": "Generates glucose reports",
-      "endpoints": [
+            "serviceID": "GlucoseLevelSensor",
+            "REST_endpoint": "glucoseiot/glucose_level_sensor",
+            "MQTT_sub": [],
+            "MQTT_pub": [
+                "/glucose_level/patient_{patient_id}"
+            ],
+            "timestamp": ""
+        },
         {
-          "type": "REST",
-          "url": "http://localhost:8084"
-        }
-      ],
-      "lastUpdate": "2025-07-23 21:01:27"
-    },
-    {
-      "serviceID": "PatientBot_patient_001",
-      "description": "PatientBot for patient_001",
-      "endpoints": [
+            "serviceID": "ThingspeakAdaptor",
+            "REST_endpoint": "glucoseiot/thingspeak_adaptor",
+            "MQTT_sub": [
+                "/glucose_level/patient_#"
+            ],
+            "MQTT_pub": [],
+            "timestamp": ""
+        },
         {
-          "type": "REST",
-          "url": "http://localhost:8085"
+            "serviceID": "PatientTelegramBot_PATIENT_ID",
+            "REST_endpoint": "",
+            "MQTT_sub": [
+                "/notifications/alert/patient_PATIENT_ID"
+            ],
+            "MQTT_pub": [
+                "/status/meal/patient_PATIENT_ID"
+            ],
+            "timestamp": "2025-07-22 21:38:23",
+            "last_updated": 1753220303
+        },
+        {
+            "serviceID": "PatientTelegramBot_patient_001",
+            "REST_endpoint": "",
+            "MQTT_sub": [
+                "/notifications/alert/patient_patient_001"
+            ],
+            "MQTT_pub": [
+                "/status/meal/patient_patient_001"
+            ],
+            "timestamp": "2025-07-22 22:09:44",
+            "last_updated": 1753222184
+        },
+        {
+            "serviceID": "doctor_bot_service",
+            "REST_endpoint": "",
+            "MQTT_sub": [],
+            "MQTT_pub": [],
+            "description": "Telegram interface for doctors",
+            "timestamp": "2025-09-07 15:07:09"
+        },
+        {
+            "serviceID": "PatientBot_patient_001",
+            "REST_endpoint": "http://patients_bot:9081",
+            "MQTT_sub": [
+                "/notifications/alert/patient_patient_001"
+            ],
+            "MQTT_pub": [
+                "/status/meal/patient_patient_001"
+            ],
+            "timestamp": "2025-07-24 08:17:35"
         }
-      ],
-      "lastUpdate": "2025-07-23 21:01:27"
-    }
-  ]
+    ],
+    "serviceDetails": [],
+    "devicesList": [
+        {
+            "deviceID": "sensor_001",
+            "deviceName": "GlucoseSensor",
+            "measureType": [
+                "Glucose"
+            ],
+            "availableServices": [
+                "MQTT",
+                "REST"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "/glucose_level/patient_001"
+                    ]
+                },
+                {
+                    "serviceType": "REST",
+                    "serviceIP": ""
+                }
+            ],
+            "lastUpdate": "2025-03-19 10:50"
+        },
+        {
+            "deviceID": "sensor_002",
+            "deviceName": "GlucoseSensor",
+            "measureType": [
+                "Glucose"
+            ],
+            "availableServices": [
+                "MQTT",
+                "REST"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "/glucose_level/patient_002"
+                    ]
+                },
+                {
+                    "serviceType": "REST",
+                    "serviceIP": ""
+                }
+            ],
+            "lastUpdate": "2025-03-19 10:50"
+        }
+    ],
+    "doctorsList": [
+        {
+            "userID": 380463055,
+            "userName": "Julio Cesar",
+            "role": "MasterDoctor",
+            "telegram_chat_id": 380463055,
+            "password_hash": "$2b$12$u2S6J0.drn941gT7tgKHqe4cPMA4smVOEet8G13fY5VDFtXoT5xQS",
+            "patients_id": [
+                7
+            ],
+            "lastUpdate": "2025-09-06 16:30:18"
+        },
+        {
+            "userID": 5925787255,
+            "userName": "Master docc",
+            "role": "MasterDoctor",
+            "telegram_chat_id": 5925787255,
+            "password_hash": "$2b$12$P85F4D.F28ysPLKiCpx6G.Aad9PU1Uoc6zWyV6.27sikqR.HkSYYi",
+            "patients_id": [
+                23,
+                232323
+            ],
+            "lastUpdate": "2025-09-07 09:14:33"
+        }
+    ],
+    "patientsList": [
+        {
+            "userID": 7,
+            "role": "Patient",
+            "doctorID": 380463055,
+            "user_information": {
+                "userName": "Leo Messi",
+                "age": "",
+                "ID_of_the_sensor": 6
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 100.0,
+                "target_glucose_level_excersise_premeal": 80.0,
+                "target_glucose_level_excersise_postmeal": 90.0,
+                "max_daily_amount_insulin": 87.0,
+                "low_threshold": 68.0,
+                "extremely_low_threshold": 78.0,
+                "fasting_threshold": 89.0,
+                "severe_hyperglycemia_threshold": 75.0,
+                "insuline_resistence": 0
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 6
+                }
+            ],
+            "telegram_chat_id": 5925787255,
+            "thingspeak_info": {
+                "apikeys": [],
+                "channel": ""
+            },
+            "dashboard_info": {
+                "dashboard_username": "7_dashboard",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-06 20:57:16"
+        },
+        {
+            "userID": 23,
+            "role": "Patient",
+            "doctorID": 5925787255,
+            "user_information": {
+                "userName": "Juan",
+                "age": "",
+                "ID_of_the_sensor": 3
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 32.0,
+                "target_glucose_level_excersise_premeal": 32.0,
+                "target_glucose_level_excersise_postmeal": 32.0,
+                "max_daily_amount_insulin": 32.0,
+                "low_threshold": 32.0,
+                "extremely_low_threshold": 32.0,
+                "fasting_threshold": 32.0,
+                "severe_hyperglycemia_threshold": 32.0,
+                "insuline_resistence": 1
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 3
+                }
+            ],
+            "telegram_chat_id": null,
+            "thingspeak_info": {
+                "apikeys": [],
+                "channel": ""
+            },
+            "dashboard_info": {
+                "dashboard_username": "23_dashboard",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-07 09:15:07"
+        },
+        {
+            "userID": 232323,
+            "role": "Patient",
+            "doctorID": 5925787255,
+            "user_information": {
+                "userName": "Salvador",
+                "age": 23,
+                "ID_of_the_sensor": 23
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 23.0,
+                "target_glucose_level_excersise_premeal": 23.0,
+                "target_glucose_level_excersise_postmeal": 23.0,
+                "max_daily_amount_insulin": 23.0,
+                "low_threshold": 23.0,
+                "extremely_low_threshold": 23.0,
+                "fasting_threshold": 23.0,
+                "severe_hyperglycemia_threshold": 23.0,
+                "insuline_resistence": 1
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 23
+                }
+            ],
+            "telegram_chat_id": null,
+            "thingspeak_info": {
+                "apikeys": [],
+                "channel": ""
+            },
+            "dashboard_info": {
+                "dashboard_username": "232323_dashboard",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-07 09:36:09"
+        }
+    ]
 }

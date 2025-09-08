@@ -132,8 +132,9 @@ class TelegramMQTTWorker:
             "value": status_value,
             "timestamp": time.time()
         }
+        logger.info(f"Publishing MQTT status for patient {patient_id}: {payload}")
         self.mqtt_client.myPublish(self.publish_topic, payload)
-        logger.info(f"MQTT Worker: Published status to {self.publish_topic}: {payload}")
+        logger.info(f"MQTT message published to {self.publish_topic}")
 
 class PatientTelegramBot:
     def __init__(self, token: str, catalog_url: str, broker_ip: str, broker_port: int,
@@ -205,11 +206,10 @@ class PatientTelegramBot:
     def register_service(self):
         service_info = {
             "serviceID": self.service_id,
-            "REST_endpoint": "",
-            "MQTT_sub": [self.mqtt_sub_template.format(PATIENT_ID="#")],
-            "MQTT_pub": [self.mqtt_pub_template.format(PATIENT_ID="#")],
-            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "description": "Telegram interface for patients"
+            "REST_endpoint": "",  # Usa string vacío como el doctor bot
+            "MQTT_sub": [],  # Usa array vacío como el doctor bot
+            "MQTT_pub": [],  # Usa array vacío como el doctor bot
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
         max_retries = 5
@@ -217,30 +217,26 @@ class PatientTelegramBot:
 
         for attempt in range(max_retries):
             try:
-                response = requests.get(f"{self.catalog_url}/services", params={"serviceID": service_info["serviceID"]}, timeout=5)
-                existing_service_list = response.json().get("services", []) if response.status_code == 200 else []
-
-                if existing_service_list:
-                    logger.info(f"Service {service_info['serviceID']} already registered in Catalog. Attempting to update timestamp.")
-                    response = requests.put(f"{self.catalog_url}/services/{service_info['serviceID']}", json={"timestamp": service_info["timestamp"]}, timeout=5)
-                    response.raise_for_status()
-                    logger.info(f"Service {service_info['serviceID']} timestamp updated successfully.")
+                # Usa PUT como el doctor bot en lugar de POST
+                response = requests.put(
+                    f"{self.catalog_url}/services/{self.service_id}",
+                    json=service_info,
+                    timeout=5
+                )
+                
+                if response.status_code in [200, 201]:
+                    logger.info(f"Service {self.service_id} registered/updated successfully with Catalog.")
+                    return True
+                elif response.status_code == 409:
+                    logger.warning(f"Service {self.service_id} already exists (409 Conflict).")
                     return True
                 else:
-                    logger.info(f"Service {service_info['serviceID']} not found in Catalog. Attempting to register.")
-                    response = requests.post(f"{self.catalog_url}/services", json=service_info, timeout=5)
-                    response.raise_for_status()
-                    logger.info(f"Service {service_info['serviceID']} registered successfully with Catalog.")
-                    return True
-            except requests.exceptions.HTTPError as e:
-                if e.response.status_code == 409:
-                    logger.warning(f"Service {service_info['serviceID']} already exists (409 Conflict). Skipping registration.")
-                    return True
-                logger.error(f"HTTP error during service registration: {e.response.status_code} - {e.response.text}")
+                    logger.error(f"HTTP error during service registration: {response.status_code} - {response.text}")
+                    
             except requests.exceptions.RequestException as e:
-                logger.error(f"Network error during service registration: {e}", exc_info=True)
+                logger.error(f"Network error during service registration: {e}")
             except Exception as e:
-                logger.error(f"Error during service registration: {e}", exc_info=True)
+                logger.error(f"Error during service registration: {e}")
             
             if attempt < max_retries - 1:
                 logger.warning(f"Retrying service registration in {retry_delay}s...")
@@ -367,7 +363,7 @@ class PatientTelegramBot:
                     patient_data = None
 
                 if not patient_data:
-                    await query.edit_message_text("Selected patient ID not found. Please try again or /start.")
+                    await query.message.reply_text("Selected patient ID not found. Please try again or /start.")
                     return ConversationHandler.END
                 
                 context.user_data['patient_id'] = patient_data['userID']
@@ -378,42 +374,55 @@ class PatientTelegramBot:
 
             except Exception as e:
                 logger.error(f"Error in confirm_patient_link: {e}", exc_info=True)
-                await query.edit_message_text("An unexpected error occurred. Please try again.")
+                await query.message.reply_text("An unexpected error occurred. Please try again.")
                 return ConversationHandler.END
         else:
-            await query.edit_message_text("Invalid selection. Please try again or /cancel.")
+            await query.message.reply_text("Invalid selection. Please try again or /cancel.")
             return GET_PATIENT_NAME
 
-    async def _link_patient_account(self, update: Update, context: ContextTypes.DEFAULT_TYPE, patient_id: str, chat_id: int) -> int:
+    async def _link_patient_account(self, update: Update, context: ContextTypes.DEFAULT_TYPE, patient_id, chat_id: int) -> int:
         try:
-            send_catalog_request_sync("PUT", f"patients/{patient_id}", data={"telegram_chat_id": chat_id})
-            logger.info(f"Updated Catalog with chat_id {chat_id} for patient {patient_id}.")
+            patient_id_str = str(patient_id)
+            
+            logger.info(f"Attempting to link patient {patient_id_str} to chat {chat_id}")
+            
+            send_catalog_request_sync("PUT", f"patients/{patient_id_str}", data={"telegram_chat_id": chat_id})
+            logger.info(f"Updated Catalog with chat_id {chat_id} for patient {patient_id_str}.")
 
             await self._initialize_mqtt_worker(context)
 
-            message_target = update.callback_query.message if update.callback_query else update.message
-            try:
-                await message_target.edit_text(
-                    f"✅ Account successfully linked! Welcome, {context.user_data['patient_name']}! (ID: `{context.user_data['patient_id']}`)\n"
-                    "How can I help you today?",
+            success_message = (
+                f"✅ Account successfully linked! Welcome, {context.user_data['patient_name']}! "
+                f"(ID: `{context.user_data['patient_id']}`)\n"
+                "How can I help you today?"
+            )
+
+            # Siempre enviar nuevo mensaje en lugar de editar
+            if update.callback_query:
+                await update.callback_query.message.reply_text(
+                    success_message,
                     parse_mode="Markdown"
                 )
-            except Exception:
-                 await update.effective_chat.send_message(
-                    f"✅ Account successfully linked! Welcome, {context.user_data['patient_name']}! (ID: `{context.user_data['patient_id']}`)\n"
-                    "How can I help you today?",
+                await update.callback_query.answer()
+            else:
+                await update.message.reply_text(
+                    success_message,
                     parse_mode="Markdown"
                 )
+                
             return await self._send_patient_main_menu(update, context)
 
         except Exception as e:
             logger.error(f"Error in _link_patient_account: {e}", exc_info=True)
             error_message = "An unexpected error occurred during account linking. Please try again."
-            message_target = update.callback_query.message if update.callback_query else update.message
-            try:
-                await message_target.edit_text(error_message)
-            except Exception:
-                await update.effective_chat.send_message(error_message)
+            
+            # Siempre enviar nuevo mensaje de error
+            if update.callback_query:
+                await update.callback_query.message.reply_text(error_message)
+                await update.callback_query.answer()
+            else:
+                await update.message.reply_text(error_message)
+                
             return ConversationHandler.END
 
     async def _initialize_mqtt_worker(self, context: ContextTypes.DEFAULT_TYPE):
@@ -447,29 +456,39 @@ class PatientTelegramBot:
         message_text = f"Hello {context.user_data.get('patient_name', 'Patient')}! What would you like to do?"
 
         if update.callback_query:
-            try:
-                await update.callback_query.message.edit_text(message_text, reply_markup=reply_markup, parse_mode="Markdown")
-            except Exception:
-                await update.callback_query.message.reply_text(message_text, reply_markup=reply_markup, parse_mode="Markdown")
+            await update.callback_query.message.reply_text(
+                message_text, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
+            await update.callback_query.answer()  
         else:
-            await update.message.reply_text(message_text, reply_markup=reply_markup, parse_mode="Markdown")
+            await update.message.reply_text(
+                message_text, 
+                reply_markup=reply_markup, 
+                parse_mode="Markdown"
+            )
         
         return PATIENT_MAIN_MENU
 
     async def meal_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message:
             message_target = update.message
+            logger.info(f"Meal command via message from {update.effective_user.id}")
         elif update.callback_query:
             await update.callback_query.answer()
             message_target = update.callback_query.message
+            logger.info(f"Meal command via callback from {update.effective_user.id}")
         else:
             logger.warning("meal_command received an update without message or callback_query.")
             return PATIENT_MAIN_MENU
 
         if not context.user_data.get('patient_id'):
+            logger.warning("Meal command without patient_id")
             await message_target.reply_text("Please link your patient account first using /start.")
             return INITIAL_PATIENT_STATE
             
+        logger.info(f"Showing meal options for patient {context.user_data['patient_id']}")
         await message_target.reply_text(
             "Select meal status:",
             reply_markup=InlineKeyboardMarkup([
@@ -482,17 +501,21 @@ class PatientTelegramBot:
     async def exercise_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         if update.message:
             message_target = update.message
+            logger.info(f"Exercise command via message from {update.effective_user.id}")
         elif update.callback_query:
             await update.callback_query.answer()
             message_target = update.callback_query.message
+            logger.info(f"Exercise command via callback from {update.effective_user.id}")
         else:
             logger.warning("exercise_command received an update without message or callback_query.")
             return PATIENT_MAIN_MENU
 
         if not context.user_data.get('patient_id'):
+            logger.warning("Exercise command without patient_id")
             await message_target.reply_text("Please link your patient account first using /start.")
             return INITIAL_PATIENT_STATE
 
+        logger.info(f"Showing exercise options for patient {context.user_data['patient_id']}")
         await message_target.reply_text(
             "Select exercise status:",
             reply_markup=InlineKeyboardMarkup([
@@ -530,48 +553,70 @@ class PatientTelegramBot:
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
-
+        
         patient_id = context.user_data.get('patient_id')
         if not patient_id:
-            await query.edit_message_text("Your session expired. Please /start again.")
+            logger.warning(f"Button pressed without patient_id: {query.data}")
+            await query.message.reply_text("Your session expired. Please /start again.")
             return INITIAL_PATIENT_STATE
 
         logger.info(f"Button pressed by patient {patient_id}: {query.data}")
 
-        if query.data.startswith("meal_"):
-            status = query.data.replace("meal_", "")
-            self.mqtt_worker.publish_status(patient_id, "meal", status)
-            await self._send_to_thingspeak_direct(context, "field1", 1 if status == "eating" else 0)
-            await query.edit_message_text(f"Meal status: `{status}` recorded.", parse_mode="Markdown")
-            return await self._send_patient_main_menu(update, context)
+        try:
+            if query.data.startswith("meal_"):
+                status = query.data.replace("meal_", "")
+                logger.info(f"Patient {patient_id} reporting meal status: {status}")
+                
+                self.mqtt_worker.publish_status(patient_id, "meal", status)
+                await self._send_to_thingspeak_direct(context, "field1", 1 if status == "eating" else 0)
+                
+                await query.message.reply_text(f"✅ Meal status: `{status}` recorded.", parse_mode="Markdown")
+                return await self._send_patient_main_menu(update, context)
 
-        elif query.data.startswith("exercise_"):
-            status = query.data.replace("exercise_", "")
-            self.mqtt_worker.publish_status(patient_id, "exercise", status)
-            await self._send_to_thingspeak_direct(context, "field2", 1 if status == "active" else 0)
-            await query.edit_message_text(f"Exercise status: `{status}` recorded.", parse_mode="Markdown")
-            return await self._send_patient_main_menu(update, context)
+            elif query.data.startswith("exercise_"):
+                status = query.data.replace("exercise_", "")
+                logger.info(f"Patient {patient_id} reporting exercise status: {status}")
+                
+                self.mqtt_worker.publish_status(patient_id, "exercise", status)
+                await self._send_to_thingspeak_direct(context, "field2", 1 if status == "active" else 0)
+                
+                await query.message.reply_text(f"✅ Exercise status: `{status}` recorded.", parse_mode="Markdown")
+                return await self._send_patient_main_menu(update, context)
+                
+            elif query.data == "alert_done":
+                logger.info(f"Patient {patient_id} acknowledged alert")
+                await query.message.reply_text("✅ ¡Alerta reconocida! Gracias por tu confirmación.")
+                return await self._send_patient_main_menu(update, context)
             
-        elif query.data == "alert_done":
-            await query.edit_message_text("¡Alerta reconocida! Gracias por tu confirmación.")
-            return await self._send_patient_main_menu(update, context)
-        
-        elif query.data == "alert_not_yet":
-            await query.edit_message_text("Entendido. Recuerda seguir las indicaciones de tu médico.")
-            return await self._send_patient_main_menu(update, context)
+            elif query.data == "alert_not_yet":
+                logger.info(f"Patient {patient_id} deferred alert action")
+                await query.message.reply_text("ℹ️ Entendido. Recuerda seguir las indicaciones de tu médico.")
+                return await self._send_patient_main_menu(update, context)
 
-        elif query.data == "command_meal":
-            return await self.meal_command(update, context)
-        elif query.data == "command_exercise":
-            return await self.exercise_command(update, context)
-        elif query.data == "command_report":
-            return await self.report_command(update, context)
-        elif query.data == "command_logout":
-            return await self.cancel_command(update, context)
+            elif query.data == "command_meal":
+                logger.info(f"Patient {patient_id} requested meal menu")
+                return await self.meal_command(update, context)
+                
+            elif query.data == "command_exercise":
+                logger.info(f"Patient {patient_id} requested exercise menu")
+                return await self.exercise_command(update, context)
+                
+            elif query.data == "command_report":
+                logger.info(f"Patient {patient_id} requested report")
+                return await self.report_command(update, context)
+                
+            elif query.data == "command_logout":
+                logger.info(f"Patient {patient_id} requested logout")
+                return await self.cancel_command(update, context)
 
-        else:
-            logger.warning(f"Unhandled callback_data: {query.data}")
-            await query.edit_message_text("No entendí esa opción. Por favor, elige del menú.")
+            else:
+                logger.warning(f"Unhandled callback_data from patient {patient_id}: {query.data}")
+                await query.message.reply_text("❌ No entendí esa opción. Por favor, elige del menú.")
+                return await self._send_patient_main_menu(update, context)
+                
+        except Exception as e:
+            logger.error(f"Error in button_handler for patient {patient_id}: {e}", exc_info=True)
+            await query.message.reply_text("❌ Ocurrió un error. Por favor, intenta nuevamente.")
             return await self._send_patient_main_menu(update, context)
 
     async def _send_to_thingspeak_direct(self, context: ContextTypes.DEFAULT_TYPE, field_name: str, value: Union[int, float]):
@@ -591,20 +636,21 @@ class PatientTelegramBot:
             "api_key": api_key,
             field_name: value
         }
-        logger.info(f"Attempting to send directly to ThingSpeak for patient {patient_id}. Params: {params}")
+        
+        logger.info(f"Attempting to send to ThingSpeak for patient {patient_id}: {params}")
 
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(thingspeak_url, params=params, timeout=10)
                 response.raise_for_status()
-                logger.info(f"Successfully sent data directly to ThingSpeak for patient {patient_id}: {response.status_code} - {response.text}")
+                logger.info(f"Successfully sent data to ThingSpeak for patient {patient_id}: {response.status_code}")
         except httpx.HTTPStatusError as e:
-            logger.error(f"HTTP error sending directly to ThingSpeak for patient {patient_id}: {e.response.status_code} - {e.response.text}", exc_info=True)
+            logger.error(f"HTTP error sending to ThingSpeak for patient {patient_id}: {e.response.status_code}")
         except httpx.RequestError as e:
-            logger.error(f"Network error sending directly to ThingSpeak for patient {patient_id}: {e}", exc_info=True)
+            logger.error(f"Network error sending to ThingSpeak for patient {patient_id}: {e}")
         except Exception as e:
-            logger.error(f"An unexpected error occurred sending directly to ThingSpeak for patient {patient_id}: {e}", exc_info=True)
-
+            logger.error(f"Unexpected error sending to ThingSpeak for patient {patient_id}: {e}")
+            
     async def handle_mqtt_alert(self, mqtt_payload_str: str):
         try:
             alert = json.loads(mqtt_payload_str)
@@ -645,7 +691,7 @@ class PatientTelegramBot:
     async def cancel_linking(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         query = update.callback_query
         await query.answer()
-        await query.edit_message_text("Vinculación de cuenta cancelada. Escribe /start para empezar de nuevo.")
+        await query.message.reply_text("Account linking canceled. Type /start to restart.")
         context.user_data.clear()
         return ConversationHandler.END
 
@@ -660,12 +706,12 @@ class PatientTelegramBot:
         else:
             logger.warning("cancel_command received an update without message or callback_query.")
             if update.effective_chat:
-                await update.effective_chat.send_message("Operación cancelada. Escribe /start para empezar de nuevo.")
+                await update.effective_chat.send_message("Operation cancelled. Type /start to restart.")
             context.user_data.clear()
             return ConversationHandler.END
 
         await message_target.reply_text(
-            "Operación cancelada. Escribe /start para empezar de nuevo.", reply_markup=ReplyKeyboardRemove()
+            "Operation cancelled. Type /start to restart.", reply_markup=ReplyKeyboardRemove()
         )
         context.user_data.clear()
         return ConversationHandler.END
@@ -685,10 +731,10 @@ class PatientTelegramBot:
         message_target = update.effective_chat
         
         if context.user_data.get('patient_id'):
-            await message_target.send_message("No entendí eso. Por favor, usa las opciones del menú.")
+            await message_target.send_message("I didn't understand that. Please use the menu options.")
             return await self._send_patient_main_menu(update, context)
         else:
-            await message_target.send_message("No entendí eso. Por favor, escribe tu nombre de paciente para vincular tu cuenta, o /start.")
+            await message_target.send_message("I didn't understand that. Please enter your patient name to link your account, or /start.")
             return GET_PATIENT_NAME
 
     def run(self):
@@ -727,9 +773,9 @@ if __name__ == "__main__":
         mqtt_pub_template = service_info.get("MQTT_pub", "/status/meal/patient_{PATIENT_ID}")
         client_id_template = service_info.get("clientID", "telegram_patient_bot_{PATIENT_ID}")
 
-        telegram_token = os.getenv("TELEGRAM_TOKEN", telegram_token)
+        telegram_token = os.getenv("TELEGRAM_TOKEN", telegram_token) # this looks at environment variable first, then at settings.json
         catalog_url = os.getenv("CATALOG_URL", catalog_url)
-        broker_ip = os.getenv("BROKER_IP", broker_ip)
+        broker_ip = os.getenv("BROKER_IP", broker_ip) 
         broker_port = int(os.getenv("BROKER_PORT", broker_port or 1883))
         service_id = os.getenv("SERVICE_ID", service_id)
         mqtt_sub_template = os.getenv("MQTT_SUB_TOPIC_TEMPLATE", mqtt_sub_template)

@@ -79,7 +79,7 @@ class Catalog:
     @staticmethod
     def validate_service(data):
         required_fields = {
-            "serviceID": str,
+            "serviceID": int,
             "REST_endpoint": str,
             "MQTT_sub": list,
             "MQTT_pub": list,
@@ -100,7 +100,7 @@ class Catalog:
     @staticmethod
     def validate_doctor(data, is_post=True):
         required_fields = {
-            "userID": str,
+            "userID": int,
             "userName": str,
             "role": str,
             "telegram_chat_id": (int, type(None)),
@@ -117,9 +117,9 @@ class Catalog:
     @staticmethod
     def validate_patient(data):
         required_fields = {
-            "userID": str,
+            "userID": int,
             "role": str,
-            "doctorID": str,
+            "doctorID": int,
             "user_information": dict,
             "threshold_parameters": dict,
             "connected_devices": list,
@@ -359,7 +359,16 @@ class Catalog:
             return json.dumps({"error": "Specify resource type and ID"}).encode('utf-8')
 
         resource_type = uri[0]
-        resource_id = uri[1]
+        resource_id_str = uri[1]
+        # Convertir a int para pacientes y doctores
+        try:
+            if resource_type in ["patients", "doctors"]:
+                resource_id = int(resource_id_str)
+            else:
+                resource_id = resource_id_str
+        except ValueError:
+            cherrypy.response.status = 400
+            return json.dumps({"error": f"Invalid ID format for {resource_type}"}).encode('utf-8')
         updated = False
 
         try:
@@ -476,6 +485,7 @@ class Catalog:
 
         resource_type = uri[0]
         resource_id = uri[1]
+        resource_id = int(resource_id) if resource_type in ["patients", "doctors"] else resource_id
         deleted = False
 
         try:
