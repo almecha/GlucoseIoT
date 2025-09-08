@@ -83,7 +83,7 @@ class Dashboard_REST_Worker(object):
                 with open(self.CONFIG_PATH, "w", encoding="utf-8") as f:
                     yaml.safe_dump(self.config_file, f, sort_keys=False, allow_unicode=True)
                     st_auth.Hasher.hash_passwords(self.config_file['credentials'])
-                return json.dumps({"status": "ok", **updated}).encode("utf-8")
+                return json.dumps({"status": "ok"}).encode("utf-8")
             else:
                 cherrypy.response.status = 400
                 return json.dumps({"error": "Invalid 'username' or 'fields'"}).encode("utf-8")
