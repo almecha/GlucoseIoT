@@ -161,6 +161,10 @@ class Catalog:
             elif resource_type == "devices":
                 response = self.catalog.get("devicesList", [])
                 if len(uri) > 1:
+                    
+                    if (uri[1] == 'all'):
+                        return json.dumps(response).encode('utf-8')
+
                     deviceID = uri[1]
                     response = next((d for d in response if d["deviceID"] == deviceID), None)
                 elif "deviceID" in params:
@@ -193,7 +197,11 @@ class Catalog:
             elif resource_type == "patients":
                 response = self.catalog.get("patientsList", [])
                 if len(uri) > 1:
-                    patientID = uri[1]
+                    
+                    if (uri[1] == "all"):
+                        return json.dumps(response).encode('utf-8')
+
+                    patientID = uri[1]  
                     response = next(
                                     (p for p in response if str(p.get("userID")) == str(patientID)),
                                     None

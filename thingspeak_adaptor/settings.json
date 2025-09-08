@@ -1,17 +1,14 @@
 {
-    "catalogURL": "CATALOG.json",
+    "catalogURL": "http://0.0.0.0:9080",
     "ThingspeakWriteURL": "https://api.thingspeak.com/update?api_key=",
     "ThingspeakReadURL":  "https://api.thingspeak.com/channels",
-    "ChannelID": "2971820",
-    "ChannelWriteAPIkey": "S2388HMXKVKG6PI3",
-    "ChannelReadAPIKey": "2YN0JR2LKQFAV3BI",
-    "brokerIP": "mqtt.eclipseprojects.io",
-    "brokerPort": 1883,
-    "mqttTopic":"GlucosIoT/sensor",
     "serviceInfo": {
-        "ID": 3,
-        "serviceName": "ThingspeakAdaptor",
-        "last_updated": "",
-        "REST_endpoint": "retrieve"
+            "serviceID": "ThingspeakAdaptor",
+            "REST_endpoint": "glucoseiot/thingspeak_adaptor",
+            "MQTT_sub": [
+                "/glucose_level/patient/#"
+            ],
+            "MQTT_pub": [],
+            "timestamp": ""
     }
 }

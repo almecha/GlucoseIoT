@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "GlucoseIoT",
-    "lastUpdate": "2025-09-08 16:51:04",
+    "lastUpdate": "2025-09-08 18:54:56",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -74,10 +74,10 @@
             "serviceID": "ThingspeakAdaptor",
             "REST_endpoint": "glucoseiot/thingspeak_adaptor",
             "MQTT_sub": [
-                "/glucose_level/patient_#"
+                "/glucose_level"
             ],
             "MQTT_pub": [],
-            "timestamp": ""
+            "timestamp": "2025-09-08 18:50:04"
         },
         {
             "serviceID": "PatientTelegramBot_PATIENT_ID",
