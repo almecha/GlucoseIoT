@@ -7,8 +7,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY Device_Connector.py .
+COPY Raspberry_Publisher.py .
 
 #EXPOSE 9080
 
-CMD ["python3", "Device_Connector.py"]
+CMD ["python3", "Raspberry_Publisher.py"]

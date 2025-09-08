@@ -1,3 +1,6 @@
+# the Raspeberry publisher can check how many sensors he has to generate in the catalog, after the patients have been registered
+
+
 # Raspberry Pi MQTT Publisher for Blood Glucose (OOP)
 from MyMQTT import *
 import json

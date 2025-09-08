@@ -89,7 +89,7 @@ class Catalog:
     @staticmethod
     def validate_device(data):
         required_fields = {
-            "deviceID": str,
+            "deviceID": int,
             "deviceName": str,
             "measureType": list,
             "availableServices": list,
