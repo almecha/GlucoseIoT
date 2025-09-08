@@ -19,6 +19,7 @@ import requests
 import pandas as pd
 import cherrypy
 import streamlit as st
+import streamlit_authenticator as st_auth
 from auth import GlucoseIoTAuth
 
 # catalog = json.load(open('../catalog.json', encoding='utf-8'))
@@ -30,21 +31,25 @@ READ_API_KEY = "2YN0JR2LKQFAV3BI"
 BASE_URL = "https://api.thingspeak.com/channels"
 ACCESS_CODE = "1234"
 
-# def user_api_keys(patient_id):
-#     """
-#     To extract user API keys from the catalog.
-#     """
+def user_api_keys(patient_id):
+    """
+    To extract user API keys from the catalog.
+    """
 
-#     if patient_id not in range(len(patientList)):
-#         return "Error: Patient ID is not valid"
-    
-#     return patientList[patient_id]["serviceDetails"]["Thingspeak"]["channelAPIkey"]
+    response = requests.get("http://0.0.0.0:9080/patients", params={"userID": patient_id})
+
+    if response.status_code == 200:
+        user_data = response.json()
+        if user_data and "userID" in user_data:
+            return user_data["thingspeak_info"]["apikeys"][0]
+        else:
+            st.error("User not found in the catalog.")
+    return None
 
 
 @cherrypy.expose
 class Dashboard_REST_Worker(object):
     def __init__(self):
-        #https://api.thingspeak.com/channels/2971820/fields/1.json?api_key=2YN0JR2LKQFAV3BI&results=2
         self.config_file = yaml.safe_load(open('config.yaml'))
         self.CONFIG_PATH = 'config.yaml'
     
@@ -77,8 +82,11 @@ class Dashboard_REST_Worker(object):
                 # Save YAML back
                 with open(self.CONFIG_PATH, "w", encoding="utf-8") as f:
                     yaml.safe_dump(self.config_file, f, sort_keys=False, allow_unicode=True)
-
+                    st_auth.Hasher.hash_passwords(self.config_file['credentials'])
                 return json.dumps({"status": "ok", **updated}).encode("utf-8")
+            else:
+                cherrypy.response.status = 400
+                return json.dumps({"error": "Invalid 'username' or 'fields'"}).encode("utf-8")
 
         else:
                 return "Unknown endpoint"
@@ -97,8 +105,8 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
     Read JSON data from the Thingspeak channel via REST API.
     Called on page refresh.
     """
-    #channel_id = user_api_keys(patientID)
-    url = f"{BASE_URL}/{USER_CHANNEL_ID}/fields/1.json?api_key={READ_API_KEY}&results={number_of_entries}"
+    read_api_key = user_api_keys(patientID)
+    url = f"{BASE_URL}/{USER_CHANNEL_ID}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
     response = requests.get(url, timeout=5)  # Send GET request to the URL
     
     if response.status_code == 200:
@@ -107,6 +115,41 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
         return df
     st.error(f"Failed to fetch data. Status code: {response.status_code}")
     return None
+
+
+# "threshold_parameters": {
+#                 "target_glucose_level_normal": 100.0,
+#                 "target_glucose_level_excersise_premeal": 90.0,
+#                 "target_glucose_level_excersise_postmeal": 200.0,
+#                 "max_daily_amount_insulin": 40.0,
+#                 "low_threshold": 80.0,
+#                 "extremely_low_threshold": 54.0,
+#                 "fasting_threshold": 160.0,
+#                 "severe_hyperglycemia_threshold": 240.0,
+#                 "insuline_resistence": 0
+#             }
+
+def display_user_tresholds():
+    patient_id = st.session_state.get('patientID', 0)
+    response = requests.get("http://0.0.0.0:9080/patients", params={"userID": patient_id})
+    if response.status_code == 200:
+        user_data = response.json()
+        if user_data and "threshold_parameters" in user_data:
+            thresholds = user_data["threshold_parameters"]
+            st.subheader("Your Glucose Thresholds")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(label="Target Glucose Level (Normal)", value=f"{thresholds['target_glucose_level_normal']} mg/dL")
+                st.metric(label="Target Glucose Level (Pre-meal Exercise)", value=f"{thresholds['target_glucose_level_excersise_premeal']} mg/dL")
+                st.metric(label="Target Glucose Level (Post-meal Exercise)", value=f"{thresholds['target_glucose_level_excersise_postmeal']} mg/dL")
+                st.metric(label="Max Daily Amount of Insulin", value=f"{thresholds['max_daily_amount_insulin']} units")
+            with col2:
+                st.metric(label="Low Threshold", value=f"{thresholds['low_threshold']} mg/dL")
+                st.metric(label="Extremely Low Threshold", value=f"{thresholds['extremely_low_threshold']} mg/dL")
+                st.metric(label="Fasting Threshold", value=f"{thresholds['fasting_threshold']} mg/dL")
+                st.metric(label="Severe Hyperglycemia Threshold", value=f"{thresholds['severe_hyperglycemia_threshold']} mg/dL")
+        else:
+            st.warning("No threshold parameters found for the user.")
 
 # CHECK THE REPORT AND ADAPT THE DASHVOARD TO IT
 def display_metrics(generatedReport):
@@ -117,29 +160,29 @@ def display_metrics(generatedReport):
     """
     if generatedReport is not None:
         st.subheader("Key Metrics")
-        # col1, col2, col3 = st.columns(3)  # Create a single row with two columns
-        # with col1:
-        #     st.metric(label="Average Glucose (mg/dL)", value=generatedReport["Average Glucose"])
-        # with col2:
-        #     st.metric(label="Minimum Glucose (mg/dL) ", value=generatedReport['Minimum Glucose'])
-        # with col3:
-        #     st.metric(label="Maximum Glucose (mg/dL) ", value=generatedReport['Maximum Glucose'])
+        col1, col2, col3 = st.columns(3)  # Create a single row with two columns
+        with col1:
+            st.metric(label="Average Glucose (mg/dL)", value=generatedReport["Average Glucose"])
+        with col2:
+            st.metric(label="Minimum Glucose (mg/dL) ", value=generatedReport['Minimum Glucose'])
+        with col3:
+            st.metric(label="Maximum Glucose (mg/dL) ", value=generatedReport['Maximum Glucose'])
 
-        # col4, col5 = st.columns(2)  # Create a single row with two columns
-        # with col4:
-        #     st.metric(label="Coefficient of Variation (%)", value=generatedReport["Glucose Variability Metrics"]['Coefficient of Variation (CV)'])
-        # with col5:
-        #     st.metric(label="Glucose Management Indicator (%)", value=generatedReport["Glucose Variability Metrics"]['Glucose Management Indicator (GMI)'])
+        col4, col5, col6 = st.columns(3)  # Create a single row with two columns
+        with col4:
+            st.metric(label="Coefficient of Variation (%)", value=generatedReport["Glucose Variability Metrics"]['Coefficient of Variation (CV)'])
+        with col5:
+            st.metric(label="Glucose Management Indicator (%)", value=generatedReport["Glucose Variability Metrics"]['Glucose Management Indicator (GMI)'])
 
-        # col6,col7,col8 = st.columns(3)  # Create a single row with two columns
-        # with col6:
-        #     st.metric(label="Time in Range (%)", value=generatedReport["Time in Range Metrics"]['Target (70-180 mg/dL)'])
-        # with col7:
-        #     st.metric(label="Time Below Range (%)", value=generatedReport["Time in Range Metrics"]['Low (<70 mg/dL)'])
-        # with col8:
-        #     st.metric(label="Time Above Range (%)", value=generatedReport["Time in Range Metrics"]['High (>180 mg/dL)'])
-    # else:
-    #     st.warning("No data available to display metrics.")
+        col7,col8,col9 = st.columns(3)  # Create a single row with two columns
+        with col6:
+            st.metric(label="Time in Range (%)", value=generatedReport["Time in Range Metrics"]['Target (70-180 mg/dL)'])
+        with col7:
+            st.metric(label="Time Below Range (%)", value=generatedReport["Time in Range Metrics"]['Low (<70 mg/dL)'])
+        with col8:
+            st.metric(label="Time Above Range (%)", value=generatedReport["Time in Range Metrics"]['High (>180 mg/dL)'])
+    else:
+        st.warning("No data available to display metrics.")
 
 
 def display_plot():
@@ -148,8 +191,11 @@ def display_plot():
     WILL BE REDONE LATER WITH THINGSPEAK DATA
     """
     plot_placeholder = st.empty()
-    df = read_json_from_thingspeak(0)  # Fetch data from Thingspeak channel
+    patient_id = st.session_state.get('patientID', 0)
+    df = read_json_from_thingspeak(patient_id)  # Fetch data from Thingspeak channel
+
     df['field1'] = pd.to_numeric(df['field1'], errors='coerce')  # Convert field1 to numeric
+
     plot_placeholder.line_chart(data = df,x ='created_at',y = "field1", x_label="time")  # Display line chart with the DataFrame
 
     if st.button("Refresh Plot"):
@@ -160,32 +206,41 @@ def display_plot():
         #df['created_at'] = pd.to_datetime(df['created_at'])
         plot_placeholder.line_chart(data = df,x ='created_at',y = "field1", x_label="time")
 
+
 def main_dash(patientID = 0, authenticator = None):
     """
     Main function to run the dashboard.
     """
     userName = st.session_state['username']
-    #patientID = username_to_id(userName)  # Convert username to patient ID
+    st.session_state['patientID'] = username_to_id(userName)
 
     authenticator.logout_button() 
     authenticator.reset_password_button() 
     header(userName)
 
-    last_glucose_level = read_json_from_thingspeak(0,1)["field1"][0]  # Fetch data from Thingspeak channel
-    # generatedReport = requests.get(f"")
-    display_metrics({"glucose": float(last_glucose_level), "age": 25})
+    last_glucose_level = read_json_from_thingspeak(st.session_state['patientID'],1)["field1"][0]  # Fetch data from Thingspeak channel
+    generatedReport = requests.get(f"http://127.0.0.1:8093/generate_report?patientID={st.session_state['patientID']}")
+    display_user_tresholds()
+    display_metrics(generatedReport.json() if generatedReport.status_code == 200 else None)
 
     display_plot() 
 
-# def username_to_id(userName):
-#     """
-#     Convert username to patient ID.
-#     """
-#     for patient in patientList:
-#         if patient['userName'] == userName:
-#             return patient['patientID']
-#     st.error("User not found in the catalog.")
-#     return None
+
+# Method to convert the username to patient ID
+def username_to_id(userName):
+    """
+    Convert username to patient ID.
+    """
+    response = requests.get("http://0.0.0.0:9080/patients", params={"username": userName})
+
+    if response.status_code == 200:
+        user_data = response.json()
+        if user_data and "userID" in user_data:
+            return user_data["userID"]
+        else:
+            st.error("User not found in the catalog.")
+    return None
+
 
 if __name__ == "__main__":
     st.set_page_config(page_title="Dashboard", layout="wide")
@@ -204,7 +259,7 @@ if __name__ == "__main__":
     }
     }
     cherrypy.tree.mount(rest_worker,'/',conf)
-    cherrypy.config.update({'server.socket_port':8090})
+    cherrypy.config.update({'server.socket_port':8091})
     cherrypy.engine.start()
 
     main_dash(authenticator= authenticator)  # Run the main dashboard function

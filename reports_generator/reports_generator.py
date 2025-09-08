@@ -18,7 +18,7 @@ class ReportsGenerator(object):
         # self.patientList = self.catalog["patientsList"]
         # self.serviceDetails = self.catalog["serviceDetails"]
         #self.base_url = requests.get(f"http://{self.catalog}/services/ThingspeakAdaptor").json()["REST_endpoint"]
-        self.base_url = "http://127.0.0.1:8080/retrieve"  # Base URL for the REST API
+        self.base_url = "https://api.thingspeak.com/channels"  # Base URL for the REST API
         self.NUMBER_OF_ENTRIES_PER_REQUEST = 100
 
 
@@ -70,10 +70,43 @@ class ReportsGenerator(object):
         gmi = 3.31 + 0.02392 * mean_glucose
 
         return {
-            "Coefficient of Variation (CV)": cv,
-            "Glucose Management Indicator (GMI)": gmi
+            "Coefficient of Variation (CV)": round(cv,2),
+            "Glucose Management Indicator (GMI)": round(gmi,2)
         }
     
+
+    def user_api_keys(self,patient_id):
+        """
+        To extract user API keys from the catalog.
+        """
+
+        response = requests.get("http://0.0.0.0:9080/patients", params={"userID": patient_id})
+
+        if response.status_code == 200:
+            user_data = response.json()
+            if user_data and "userID" in user_data:
+                return user_data["thingspeak_info"]["apikeys"][0], user_data["thingspeak_info"]["channel"]
+            else:
+                return None
+
+    def read_json_from_thingspeak(self,patientID, number_of_entries=100):
+        # MAKE IT USE THE THIGNSPEAK ADAPTOR
+        """
+        Read JSON data from the Thingspeak channel via REST API.
+        Called on page refresh.
+        """
+        read_api_key, read_channel = self.user_api_keys(patientID)
+        
+        url = f"{self.base_url}/{read_channel}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
+        response = requests.get(url, timeout=5)  # Send GET request to the URL
+        
+        if response.status_code == 200:
+            data = response.json()  # Parse JSON response
+            df = pd.DataFrame(data['feeds'])  # Convert 'feeds' to DataFrame
+            return df
+        return None
+    
+
     def generate_report(self, patientID):
         """
         Generates a report for the given patient ID by fetching data from the REST API.
@@ -82,15 +115,15 @@ class ReportsGenerator(object):
         #     return "Error: Patient ID is not valid"
         # Fetch data from thingspeak
         # CHANGE HERE RECENTLY TO WORK WITH CATALOG
-        response = requests.get(
-            f"{self.base_url}/{patientID}?number_of_entries={self.NUMBER_OF_ENTRIES_PER_REQUEST}",
-        )
-        data = response.json()["feeds"]
+        
+        
+        data = self.read_json_from_thingspeak(patientID, self.NUMBER_OF_ENTRIES_PER_REQUEST)
         # Check if the DataFrame is empty
-        if data == None:
+        if data is None:
             return "No data available for the given patient ID."
+        
         # Calculate the metrics
-        glucose_measurements = [float(reading["field1"]) for reading in data if "field1" in reading]
+        glucose_measurements = pd.to_numeric(data["field1"], errors="coerce").dropna().to_list()        
         avg_glucose = sum(glucose_measurements) / len(glucose_measurements)
         min_glucose = min(glucose_measurements)
         max_glucose = max(glucose_measurements)
@@ -98,9 +131,9 @@ class ReportsGenerator(object):
         variability_metrics = self.calculate_glucose_variability(glucose_measurements)
         report = json.dumps({
             "Patient ID": patientID,
-            "Average Glucose": avg_glucose,
-            "Minimum Glucose": min_glucose,
-            "Maximum Glucose": max_glucose,
+            "Average Glucose": round(avg_glucose, 2),
+            "Minimum Glucose": round(min_glucose, 2),
+            "Maximum Glucose": round(max_glucose, 2),
             "Time in Range Metrics": tir_metics,
             "Glucose Variability Metrics": variability_metrics
         })
@@ -114,7 +147,7 @@ class ReportsGenerator(object):
             return "No arguments provided"
         elif uri[0] == "generate_report":
             # Return the report as a JSON response
-            report = self.generate_report(int(params.get('patientID', 0)))
+            report = self.generate_report(params.get('patientID', 0))
             return report
         else:
             return "Unknown endpoint"
@@ -128,6 +161,6 @@ if __name__ == "__main__":
         }
         }
     cherrypy.tree.mount(web_service,'/',conf)
-    cherrypy.config.update({'server.socket_port':8090})
+    cherrypy.config.update({'server.socket_port':8093})
     cherrypy.engine.start()
     cherrypy.engine.block()
