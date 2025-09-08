@@ -120,7 +120,7 @@ class ReportsGenerator(object):
         data = self.read_json_from_thingspeak(patientID, self.NUMBER_OF_ENTRIES_PER_REQUEST)
         # Check if the DataFrame is empty
         if data is None:
-            return "No data available for the given patient ID."
+            return {"status":400}
         
         # Calculate the metrics
         glucose_measurements = pd.to_numeric(data["field1"], errors="coerce").dropna().to_list()        
@@ -130,6 +130,7 @@ class ReportsGenerator(object):
         tir_metics = self.calculate_time_in_range(glucose_measurements)
         variability_metrics = self.calculate_glucose_variability(glucose_measurements)
         report = json.dumps({
+            "status":200,
             "Patient ID": patientID,
             "Average Glucose": round(avg_glucose, 2),
             "Minimum Glucose": round(min_glucose, 2),
