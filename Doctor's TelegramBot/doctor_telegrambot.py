@@ -78,6 +78,41 @@ class DoctorBot:
         
         logger.error("Failed to register service after multiple attempts")
         return False
+    
+    def register_device_for_patient(self, patient_id, sensor_id):
+        """Register a device for a patient in the catalog"""
+        device_data = {
+            "deviceID": sensor_id,
+            "deviceName": "GlucoseSensor",
+            "device_type": "sensor",
+            "measureType": ["Glucose"],
+            "availableServices": ["MQTT"],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [f"/glucose_level/{patient_id}"]
+                }
+            ],
+            "lastUpdate": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        try:
+            response = requests.post(
+                f"{self.catalog_url}/devices/{sensor_id}",
+                json=device_data,
+                timeout=10
+            )
+            logger.info(f"Device registration response: {response.status_code} - {response.text}")
+            if response.status_code in [200, 201]:
+                logger.info(f"Device {sensor_id} registered successfully for patient {patient_id}")
+                return True
+            else:
+                logger.error(f"Failed to register device: {response.text}")
+                return False
+                
+        except requests.RequestException as e:
+            logger.error(f"Error registering device: {e}")
+            return False
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
@@ -380,16 +415,14 @@ class DoctorBot:
             # Log the incoming message
             logger.info(f"Received message: {update.message.text}")
             
-            # Si venimos del paso insulin_max, procesamos ese valor
+            # Ensure all thresholds are set, even if some were skipped
             if 'insulin_max' not in context.user_data:
-                # Esto significa que venimos de get_insuline_resistence
                 value = int(update.message.text)
                 if value not in [0, 1]:
                     raise ValueError("Must be 0 or 1")
                 context.user_data['insuline_resistence'] = value
             else:
-                # Si venimos de insulin_max, entonces ya tenemos ese valor
-                # pero necesitamos establecer valores por defecto para los nuevos thresholds
+                # Set defaults for any missing thresholds
                 context.user_data.setdefault('low_threshold', 80.0)
                 context.user_data.setdefault('extremely_low_threshold', 54.0)
                 context.user_data.setdefault('fasting_threshold', 160.0)
@@ -403,53 +436,53 @@ class DoctorBot:
                 doctor_id = int(doctor_id_str)
             
 
-            # Register patient in Thingspeak and get API keys
-            thingspeak_register_response = requests.post(
-                f"https://api.thingspeak.com/channels.json",
-                json={
-                    "api_key" : "ZUBPLJ508A3NGFS2",
-                    "name": f"{(context.user_data['patient_name']).replace(" ","_").lower()}_channel",
-                }
-                )
+            # # Register patient in Thingspeak and get API keys
+            # thingspeak_register_response = requests.post(
+            #     f"https://api.thingspeak.com/channels.json",
+            #     json={
+            #         "api_key" : "ZUBPLJ508A3NGFS2",
+            #         "name": f"{(context.user_data['patient_name']).replace(' ', '_').lower()}_channel",
+            #     }
+            #     )
             
-            if thingspeak_register_response.status_code != 200:
-                logger.error(f"Thingspeak registration failed: {thingspeak_register_response.text}")
-                await update.message.reply_text(
-                    "❌ Failed to register patient in Thingspeak.",
-                    reply_markup=self.main_menu(False)
-                )
-                return ConversationHandler.END
+            # if thingspeak_register_response.status_code != 200:
+            #     logger.error(f"Thingspeak registration failed: {thingspeak_register_response.text}")
+            #     await update.message.reply_text(
+            #         "❌ Failed to register patient in Thingspeak.",
+            #         reply_markup=self.main_menu(False)
+            #     )
+            #     return ConversationHandler.END
             
-            thingspeak_data = thingspeak_register_response.json()
+            # thingspeak_data = thingspeak_register_response.json()
 
-            write_api_key = thingspeak_data.get("api_keys", [{}])[0].get("api_key", "")
-            read_api_key = thingspeak_data.get("api_keys", [{}])[1].get("api_key", "")
-            channel_id = str(thingspeak_data.get("id", ""))
+            # write_api_key = thingspeak_data.get("api_keys", [{}])[0].get("api_key", "")
+            # read_api_key = thingspeak_data.get("api_keys", [{}])[1].get("api_key", "")
+            # channel_id = str(thingspeak_data.get("id", ""))
 
-            # Register patient in the dashboard
-            dashboard_register_uri = requests.get(
-                f"{self.catalog_url}/services", params={"serviceID": "Dashboard"}
-            ).json().get("REST_endpoint")
+            # # Register patient in the dashboard
+            # dashboard_register_uri = requests.get(
+            #     f"{self.catalog_url}/services", params={"serviceID": "Dashboard"}
+            # ).json().get("REST_endpoint")
 
-            dashboard_response = requests.post(
-                dashboard_register_uri,
-                json={
-                    "username": (context.user_data['patient_name']).replace(" ","_").lower(),
-                    "fields": {
-                        "password": str((context.user_data['patient_name']).replace(" ","_").lower()) + "_dashboard"  # Simple default password
-                    }
-                }
-            )
+            # dashboard_response = requests.post(
+            #     dashboard_register_uri,
+            #     json={
+            #         "username": (context.user_data['patient_name']).replace(" ","_").lower(),
+            #         "fields": {
+            #             "password": str((context.user_data['patient_name']).replace(" ","_").lower()) + "_dashboard"  # Simple default password
+            #         }
+            #     }
+            # )
 
-            # Prepare patient data with all thresholds
+            # Prepare patient data with all thresholds for the Catalog
             patient_data = {
-                "userID": context.user_data['patient_id'],  # Asegurar que sea string
+                "userID": context.user_data['patient_id'],
                 "role": "Patient",
                 "doctorID": doctor_id,
                 "user_information": {
                     "userName": context.user_data['patient_name'],
                     "age": context.user_data.get('age', ''),
-                    "ID_of_the_sensor": context.user_data['sensor_id']  # Asegurar que sea string
+                    "ID_of_the_sensor": context.user_data['sensor_id']
                 },
                 "threshold_parameters": {
                     "target_glucose_level_normal": context.user_data['glucose_normal'],
@@ -462,15 +495,15 @@ class DoctorBot:
                     "severe_hyperglycemia_threshold": context.user_data.get('severe_hyperglycemia_threshold', 240.0),
                     "insuline_resistence": context.user_data.get('insuline_resistence', 0)
                 },
-                "connected_devices": [{"deviceID": int(context.user_data['sensor_id'])}],  # Asegurar que sea string
+                "connected_devices": [{"deviceID": int(context.user_data['sensor_id'])}], 
                 "telegram_chat_id": None,
-                "thingspeak_info": {"apikeys": [write_api_key, read_api_key], "channel": channel_id},
+                "thingspeak_info": {"apikeys": ['write_api_key', 'read_api_key'], "channel": 'channel_id'},
                 "dashboard_info": {
                     "dashboard_username": (context.user_data['patient_name']).replace(" ","_").lower(),
                     "dashboard_password": None
                 }
             }
-            # En complete_patient_registration, antes de enviar al catálogo
+            
             logger.info(f"Patient data types: userID={type(context.user_data['patient_id'])}, doctorID={type(context.user_data['doctor_id'])}, sensor={type(context.user_data['sensor_id'])}")
             logger.info(f"Patient data values: userID={context.user_data['patient_id']}, doctorID={context.user_data['doctor_id']}, sensor={context.user_data['sensor_id']}")
             # Log the patient data being sent
@@ -482,13 +515,24 @@ class DoctorBot:
                 json=patient_data,
                 timeout=10
             )
-            
-            
+               
             # Log the response
             logger.info(f"Catalog response status: {response.status_code}")
             logger.info(f"Catalog response text: {response.text}")
             
             if response.status_code == 201:
+                # Register device for this patient
+                logger.info(f"Trying to register device {context.user_data['sensor_id']} for patient {context.user_data['patient_id']}")
+                device_registered = self.register_device_for_patient(
+                    context.user_data['patient_id'], 
+                    context.user_data['sensor_id']
+                    )
+                device_message = ""
+                if device_registered:
+                    device_message = f"\n📟 Sensor registered: {context.user_data['sensor_id']}"
+                else:
+                    device_message = "\n⚠️ Sensor registration failed (will need manual setup)"
+                
                 success_message = (
                     f"✅ Patient registered successfully!\n\n"
                     f"Name: {context.user_data['patient_name']}\n"
@@ -508,6 +552,10 @@ class DoctorBot:
                 await update.message.reply_text(
                     success_message,
                     reply_markup=self.main_menu(False)
+                )
+                await update.message.reply_text(
+                device_message,
+                reply_markup=self.main_menu(False)
                 )
             else:
                 error = response.json().get("error", "Unknown error")
