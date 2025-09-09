@@ -43,9 +43,9 @@ class ReportsGenerator(object):
         high = sum(value > 180 for value in glucose_measurements) / total_measurements * 100
 
         return {
-            "Target (70-180 mg/dL)": target,
-            "Low (<70 mg/dL)": low,
-            "High (>180 mg/dL)": high
+            "Target (70-180 mg/dL)": round(target,2),
+            "Low (<70 mg/dL)": round(low,2),
+            "High (>180 mg/dL)": round(high,2)
         }
     
     def calculate_glucose_variability(self, glucose_measurements):

@@ -9,6 +9,8 @@ credentials:
       failed_login_attempts: 0
       logged_in: true
       password: $2b$12$3VHVVQk9lAbRRvrpRAcanuD5WJDf.M/KFSyf5Gs4wOHdI/Mq6JmBy
+    antonio_margaretti:
+      password: $2b$12$HaMkd6cHLsqyleyKosT1vOemnIrTnMvDV3e3aWTlQYn.TrXDibt8i
     dario:
       email: dwdw@gmail.com
       failed_login_attempts: 0
@@ -99,3 +101,7 @@ credentials:
       password: $2b$12$lVMkW4kc9TZWKXmWg5GUvuY8GoUDnDH575eplc7NRncMusJg4kBdy
       password_hint: User1234!
       roles: null
+    spongebob_roundpants:
+      failed_login_attempts: 0
+      logged_in: true
+      password: $2b$12$v4SONrnEjXW.AUQzgl7Cj.ACI2VAeGH8uOtqRrii4xKCBnjrv5ko.
