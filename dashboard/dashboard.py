@@ -27,10 +27,8 @@ from auth import GlucoseIoTAuth
 # catalog = json.load(open('../catalog.json', encoding='utf-8'))
 # patientList = catalog["patientsList"]
 
-NUMBER_OF_ENTRIES_PER_REQUEST = 5
-READ_API_KEY = "2YN0JR2LKQFAV3BI"
+NUMBER_OF_ENTRIES_PER_REQUEST = 100
 BASE_URL = "https://api.thingspeak.com/channels"
-ACCESS_CODE = "1234"
 
 def user_api_keys(patient_id):
     """
@@ -108,6 +106,7 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
     read_api_key, channel_id = user_api_keys(patientID)
     print("Read API Key:", read_api_key)
     url = f"{BASE_URL}/{channel_id}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
+    print("Thingspeak URL:", url)
     response = requests.get(url, timeout=5)  # Send GET request to the URL
     
     if response.status_code == 200:
@@ -183,6 +182,8 @@ def display_metrics(generatedReport):
             st.metric(label="Time Below Range (%)", value=generatedReport["Time in Range Metrics"]['Low (<70 mg/dL)'])
         with col8:
             st.metric(label="Time Above Range (%)", value=generatedReport["Time in Range Metrics"]['High (>180 mg/dL)'])
+        with col9:
+            st.metric(label="Last Glucose Level (mg/dL)", value=generatedReport["Last Glucose Level"])
     else:
         st.warning("No data available to display metrics.")
 

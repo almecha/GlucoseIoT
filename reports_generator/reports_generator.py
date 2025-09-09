@@ -136,7 +136,8 @@ class ReportsGenerator(object):
             "Minimum Glucose": round(min_glucose, 2),
             "Maximum Glucose": round(max_glucose, 2),
             "Time in Range Metrics": tir_metics,
-            "Glucose Variability Metrics": variability_metrics
+            "Glucose Variability Metrics": variability_metrics,
+            "Last Glucose Level": glucose_measurements[-1] if glucose_measurements else None
         })
         return report
 

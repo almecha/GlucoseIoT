@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
                 print(topic)
                 client_simplepub.publish(message_to_send, topic)
-            time.sleep(5)  # Adjust frequency as needed
+            time.sleep(60)  # Adjust frequency as needed
 
     except KeyboardInterrupt:
         print("\nStopping publisher...")

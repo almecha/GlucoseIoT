@@ -1,7 +1,7 @@
 import json, requests, logging, cherrypy, math, os
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta, timezone
-
+import pandas as pd
 # print info for troubleshooting
 logging.basicConfig(level=logging.INFO)
 
@@ -25,19 +25,10 @@ class ThresholdAnalyzer:
         response = requests.get(f"{self.catalogURL}/services/ThresholdAnalyzer", timeout=5)
         if response.status_code == 200:
             service = response.json()
-            self.topic_glucose = service["MQTT_sub"][0]
-            self.topic_response = service["MQTT_pub"][0]
+            self.topic_glucose = service["MQTT_sub"][0] + "/#" # subscribe to all glucose topics
+            self.topicresponse = service["MQTT_pub"][0]
         else:
             raise Exception(f"Failed to fetch service details: {response.status_code}")
-
-
-        # Extract Thingspeak endpoint
-        response = requests.get(f"{self.catalogURL}/services/ThingspeakAdaptor", timeout=5)
-        if response.status_code == 200:
-            service = response.json()
-            self.thingspeak_base = service["REST_endpoint"]
-        else:
-            raise Exception(f"Failed to fetch ThingspeakAdaptor details: {response.status_code}")
 
 
         # Create the MQTT client and assign callbacks.
@@ -52,6 +43,40 @@ class ThresholdAnalyzer:
         except Exception as exc:
             logging.error(f"MQTT connection error: {exc}")
 
+
+    def user_api_keys(self,patient_id):
+        """
+        To extract user API keys from the catalog.
+        """
+
+        response = requests.get("{self.catalogURL}/patients", params={"userID": patient_id})
+        if response.status_code == 200:
+            user_data = response.json()
+            if user_data and "userID" in user_data:
+                return user_data["thingspeak_info"]["apikeys"][0], user_data["thingspeak_info"]["channel"]
+            else:
+                logging.error(f"No user data found for patient ID: {patient_id}")
+        return None
+
+    def read_json_from_thingspeak(self, patientID, number_of_entries):
+        # MAKE IT USE THE THIGNSPEAK ADAPTOR
+        """
+        Read JSON data from the Thingspeak channel via REST API.
+        Called on page refresh.
+        """
+        BASE_URL = "https://api.thingspeak.com/channels"
+        read_api_key, channel_id = self.user_api_keys(patientID)
+        print("Read API Key:", read_api_key)
+        url = f"{BASE_URL}/{channel_id}/fields/2.json?api_key={read_api_key}&results={number_of_entries}"
+        print("Thingspeak URL:", url)
+        response = requests.get(url, timeout=5)  # Send GET request to the URL
+        
+        if response.status_code == 200:
+            data = response.json()  # Parse JSON response
+            data = data['feeds']  # Extract 'feeds' from the response
+        
+        # st.warning(f"Failed to fetch data. Status code: {response.status_code}")
+        return None
 
     def GET(self):
         return "The Threshold Analyzer is running"
@@ -103,42 +128,22 @@ class ThresholdAnalyzer:
             bool: True if patient has eaten in the last 2 hours (not fasting), False otherwise
         """
         try:
-            thingspeak_info = patient_info.get("thingspeak_info", {})
-            channel_id = thingspeak_info.get("channel")
-            read_api_key = thingspeak_info.get("apikeys", [None])[0]
-
-            if not channel_id or not read_api_key:
-                logging.error(f"Missing ThingSpeak info for patient {patient_info['userID']}")
-                return False
+            
 
             # Calculate timeframe (last 2 hours)
-            now = datetime.now(timezone.UTC)
-            since_time = now - timedelta(hours=2)
+            feeds = self.read_json_from_thingspeak(patient_info['userID'], 1)
 
-            # Prepare request to ThingSpeak
-            params = {
-                "api_key": read_api_key,
-                "results": 100,  # Get last 100 entries (adjust as needed)
-                "start": since_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                "end": now.strftime("%Y-%m-%dT%H:%M:%SZ")
-            }
-
-            url = f"{self.thingspeak_base}/channels/{channel_id}/fields/1.json"
-
-            response = requests.get(url, params=params, timeout=10.0)
-
-            if response.status_code == 200:
-                data = response.json()
-                feeds = data.get("feeds", [])
-
-                # Field1 contains meal data (1 = eating, 0 = not eating)
-                for feed in feeds:
-                    if feed.get("field1") == "1":
-                        return True  # Found a meal in the last 2 hours
-
-                return False  # No meals found in timeframe
+            if feeds is None or len(feeds) == 0:
+                logging.info("No meal data found; assuming fasting.")
+                return False
+            
+            last_meal_timestamp = feeds[0]['created_at']
+            last_meal_time = datetime.strptime(last_meal_timestamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+            current_time = datetime.now(timezone.utc)
+            time_diff = current_time - last_meal_time
+            if time_diff <= timedelta(hours=2):
+                return True
             else:
-                logging.error(f"ThingSpeak returned {response.status_code}")
                 return False
 
         except Exception as e:
@@ -273,7 +278,7 @@ class ThresholdAnalyzer:
 
 
 if __name__ == "__main__":
-    catalogURL = os.getenv("CATALOG_URL", "http://localhost:9080")
+    catalogURL = os.getenv("CATALOG_URL", "http://0.0.0.0:9080")
     web_service = ThresholdAnalyzer(catalogURL)
     conf={
         '/':{

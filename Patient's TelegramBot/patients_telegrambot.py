@@ -45,7 +45,7 @@ def _escape_markdown_v2(text: str) -> str:
     return text
 
 def send_catalog_request_sync(method: str, endpoint: str, data: dict = None, params: dict = None, max_retries=5, retry_delay=3):
-    catalog_url = os.getenv("CATALOG_URL", "http://catalog:9080")
+    catalog_url = os.getenv("CATALOG_URL", "http://0.0.0.0:9080")
     url = f"{catalog_url}/{endpoint}"
     
     for attempt in range(max_retries):
@@ -103,7 +103,7 @@ class TelegramMQTTWorker:
         self.subscribe_topic = subscribe_topic
         self.publish_topic = publish_topic
         self.message_callback = message_callback
-        self.mqtt_client = MyMQTT(self.client_id, self.broker_ip, self.broker_port, self)
+        self.mqtt_client = MyMQTT(clientID=self.client_id, broker=self.broker_ip, port=self.broker_port, notifier=self)
         logger.info(f"MQTT Worker initialized for client {self.client_id}")
 
     async def notify(self, topic: str, msg_payload_bytes: bytes):

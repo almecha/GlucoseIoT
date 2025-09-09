@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "glucoseiot",
-    "lastUpdate": "2025-09-09 13:25:06",
+    "lastUpdate": "2025-09-09 14:55:16",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -17,7 +17,7 @@
             "serviceID": "ThresholdAnalyzer",
             "REST_endpoint": "glucoseiot/threshold",
             "MQTT_sub": [
-                "/glucose_level/patient_#"
+                "/glucose_level/#"
             ],
             "MQTT_pub": [
                 "/notifications/alert/patient_{patient_id}"
@@ -30,7 +30,7 @@
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-08 16:51:32"
+            "timestamp": "2025-09-09 14:07:55"
         },
         {
             "serviceID": "DoctorTelegramBot",
@@ -74,10 +74,11 @@
             "serviceID": "ThingspeakAdaptor",
             "REST_endpoint": "https://api.thingspeak.com",
             "MQTT_sub": [
-                "/glucose_level/#"
+                "/glucose_level/#",
+                "/status/meal/#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-09 13:25:06"
+            "timestamp": "2025-09-09 14:55:16"
         },
         {
             "serviceID": "PatientTelegramBot_PATIENT_ID",
@@ -109,7 +110,7 @@
             "MQTT_sub": [],
             "MQTT_pub": [],
             "description": "Telegram interface for doctors",
-            "timestamp": "2025-09-09 13:20:15"
+            "timestamp": "2025-09-09 14:37:57"
         }
     ],
     "serviceDetails": [],
@@ -249,7 +250,7 @@
                     "deviceID": 1488
                 }
             ],
-            "telegram_chat_id": null,
+            "telegram_chat_id": 380463055,
             "thingspeak_info": {
                 "apikeys": [
                     "PDAK9GL8G0H8770S",
@@ -261,7 +262,7 @@
                 "dashboard_username": "spongebob_roundpants",
                 "dashboard_password": null
             },
-            "lastUpdate": "2025-09-09 12:03:12"
+            "lastUpdate": "2025-09-09 13:58:12"
         }
     ]
 }
