@@ -92,6 +92,10 @@ credentials:
       failed_login_attempts: 0
       logged_in: true
       password: $2b$12$8cvPAucP5lf3bSbw2UpZRuoIBcemYgodDXt4Z5UQoQCgyj9QH1vEi
+    sol_sebastian:
+      failed_login_attempts: 0
+      logged_in: true
+      password: $2b$12$.5ne9pGgulgJwyCjj7rblefqBu4iHSRVdPqCMGzk6KTGuyQiTNDwG
     solseb:
       email: solseb@gmail.com
       failed_login_attempts: 0

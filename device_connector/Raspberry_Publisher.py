@@ -10,7 +10,7 @@ import requests
 
 def read_blood_glucose():
     """Simulate blood glucose readings (replace with actual sensor logic)."""
-    return round(random.uniform(40.0, 180.0), 2)  # Normal glucose range, just to test if works, later gotta figure out how to simulate full data
+    return round(random.uniform(40.0, 190.0), 2)  # Normal glucose range, just to test if works, later gotta figure out how to simulate full data
 
 class RaspberryPIPublisher:
     def __init__(self, clientID, broker, port):
@@ -72,10 +72,10 @@ if __name__ == "__main__":
                         }
                     ]
                 }
-
+                time.sleep(1)  # Simulate time delay between readings
                 print(topic)
                 client_simplepub.publish(message_to_send, topic)
-            time.sleep(60)  # Adjust frequency as needed
+            time.sleep(20)  # Adjust frequency as needed
 
     except KeyboardInterrupt:
         print("\nStopping publisher...")

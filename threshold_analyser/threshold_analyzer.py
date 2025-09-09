@@ -25,8 +25,8 @@ class ThresholdAnalyzer:
         response = requests.get(f"{self.catalogURL}/services/ThresholdAnalyzer", timeout=5)
         if response.status_code == 200:
             service = response.json()
-            self.topic_glucose = service["MQTT_sub"][0] + "/#" # subscribe to all glucose topics
-            self.topicresponse = service["MQTT_pub"][0]
+            self.topic_glucose = service["MQTT_sub"][0] # subscribe to all glucose topics
+            self.topic_response = service["MQTT_pub"][0]
         else:
             raise Exception(f"Failed to fetch service details: {response.status_code}")
 
@@ -49,11 +49,11 @@ class ThresholdAnalyzer:
         To extract user API keys from the catalog.
         """
 
-        response = requests.get("{self.catalogURL}/patients", params={"userID": patient_id})
+        response = requests.get(f"{self.catalogURL}/patients", params={"userID": patient_id})
         if response.status_code == 200:
             user_data = response.json()
             if user_data and "userID" in user_data:
-                return user_data["thingspeak_info"]["apikeys"][0], user_data["thingspeak_info"]["channel"]
+                return user_data["thingspeak_info"].get("apikeys")[0], user_data["thingspeak_info"]["channel"]
             else:
                 logging.error(f"No user data found for patient ID: {patient_id}")
         return None
@@ -67,14 +67,14 @@ class ThresholdAnalyzer:
         BASE_URL = "https://api.thingspeak.com/channels"
         read_api_key, channel_id = self.user_api_keys(patientID)
         print("Read API Key:", read_api_key)
-        url = f"{BASE_URL}/{channel_id}/fields/2.json?api_key={read_api_key}&results={number_of_entries}"
+        url = f"{BASE_URL}/{channel_id}/fields/2/last.json?api_key={read_api_key}"
         print("Thingspeak URL:", url)
         response = requests.get(url, timeout=5)  # Send GET request to the URL
         
         if response.status_code == 200:
             data = response.json()  # Parse JSON response
-            data = data['feeds']  # Extract 'feeds' from the response
-        
+            data = data['created_at']  # Extract 'feeds' from the response
+            return data
         # st.warning(f"Failed to fetch data. Status code: {response.status_code}")
         return None
 
@@ -85,18 +85,13 @@ class ThresholdAnalyzer:
     # Retrieve patient information from the Thingspeak service
     def get_patient_info(self, device_id): # the device ID is posted by the sensor itself inside the MQTT topic
         try:
-            response = requests.get(f"{self.catalogURL}/patients", timeout=5)
+            response = requests.get(f"{self.catalogURL}/patients",params={"userID": device_id} , timeout=5)
             if response.status_code == 200:
-                patients = response.json()
+                patient = response.json()
 
                 # Find the patient that has this device
-                for patient in patients:
-                    for device in patient.get("connected_devices", []):
-                        if device.get("deviceID") == device_id:
-                            return patient
+                return patient
 
-                logging.error(f"No patient found with device ID: {device_id}")
-                return None
             else:
                 logging.error(f"Error retrieving patients list: {response.status_code}")
                 return None
@@ -137,7 +132,11 @@ class ThresholdAnalyzer:
                 logging.info("No meal data found; assuming fasting.")
                 return False
             
-            last_meal_timestamp = feeds[0]['created_at']
+            last_meal_timestamp = feeds
+            current_time = datetime.now(timezone.utc)
+            # OR f-strings (fine, but formatting happens even if level is disabled)
+            logging.info(f"Last meal timestamp: {last_meal_timestamp}")
+            logging.info(f"Current time: {current_time}")            
             last_meal_time = datetime.strptime(last_meal_timestamp, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
             current_time = datetime.now(timezone.utc)
             time_diff = current_time - last_meal_time
@@ -174,11 +173,10 @@ class ThresholdAnalyzer:
         logging.info(f"Received message on topic {msg.topic}: {msg.payload}")
         try:
             payload = json.loads(msg.payload.decode())
-            glucose = payload.get("glucose")
-            timestamp = payload.get("timestamp")
-            device_id = payload.get("device_id")
+            glucose = payload.get("e")[0]["v"]
+            patient_id = msg.topic.split("/")[-1] # extract patient ID from the topic
 
-            if glucose is None or device_id is None:
+            if glucose is None or patient_id is None:
                 logging.error("Message payload missing required fields ('glucose' or 'device_id').")
                 return
 
@@ -188,7 +186,7 @@ class ThresholdAnalyzer:
                 return
 
             # Retrieve patient details as a JSON file from the Thingspeak service.
-            patient_info = self.get_patient_info(device_id)
+            patient_info = self.get_patient_info(patient_id)
             if patient_info is None:
                 logging.error("Failed to retrieve patient info; cannot process message.")
                 return
@@ -202,7 +200,7 @@ class ThresholdAnalyzer:
             severe_hyperglycemia = thresholds.get("severe_hyperglycemia_threshold", 240) # immediate action
             insulin_resistence = thresholds.get("insulin_resistence", 0) # 0 is normal, 1 is insulin resistant,
             # while 2 is for patients that are insulin sensitive
-
+            # print(f"Patient {patient_id} - Fasting threshold: {fasting_threshold}")
             # Analyze the glucose value and decide on the action.
             response = {}
             if glucose >= fasting_threshold: # high glycemia
@@ -250,9 +248,6 @@ class ThresholdAnalyzer:
                 response["action"] = "none"
                 response["message"] = f"Glucose level is normal ({glucose} mg/dL). No intervention required."
 
-            # Include additional information in the response.
-            response["timestamp"] = timestamp
-            response["device_id"] = device_id
 
             patient_id = patient_info["userID"]
             response["patientID"] = patient_id
@@ -269,10 +264,10 @@ class ThresholdAnalyzer:
         Publishes the response message (with the determined action) to the MQTT topic.
         """
         try:
-            topic = self.topic_response.replace("{patient_id}", patient_id)
+            topic = self.topic_response.replace("{patient_id}", str(patient_id))
             payload = json.dumps(response)
             self.client.publish(topic, payload)
-            logging.info(f"Published response on topic {self.topic_response}: {payload}")
+            logging.info(f"Published response on topic {topic}: {payload}")
         except Exception as e:
             logging.error(f"Error publishing response: {e}")
 

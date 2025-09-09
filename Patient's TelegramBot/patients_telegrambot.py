@@ -96,7 +96,7 @@ def send_catalog_request_sync(method: str, endpoint: str, data: dict = None, par
     return None
 
 class TelegramMQTTWorker:
-    def __init__(self, broker_ip: str, broker_port: int, client_id: str, subscribe_topic: str, publish_topic: str, message_callback):
+    def __init__(self, broker_ip: str, broker_port: int, client_id: str, subscribe_topic: str, publish_topic: str, message_callback, loop:asyncio.AbstractEventLoop):
         self.broker_ip = broker_ip
         self.broker_port = broker_port
         self.client_id = client_id
@@ -104,16 +104,23 @@ class TelegramMQTTWorker:
         self.publish_topic = publish_topic
         self.message_callback = message_callback
         self.mqtt_client = MyMQTT(clientID=self.client_id, broker=self.broker_ip, port=self.broker_port, notifier=self)
+        self.loop = loop
         logger.info(f"MQTT Worker initialized for client {self.client_id}")
+        
 
-    async def notify(self, topic: str, msg_payload_bytes: bytes):
+    def notify(self, topic: str, msg_payload_bytes: bytes):
+        logger.info("MESSAGE RECEIVED")
         try:
             mqtt_payload_str = msg_payload_bytes.decode()
             logger.info(f"MQTT message received on topic {topic}: {mqtt_payload_str}")
-            if self.message_callback:
-                await self.message_callback(mqtt_payload_str)
+
+            # If callback is async, schedule it onto the PTB loop; otherwise call directly
+            if asyncio.iscoroutinefunction(self.message_callback):
+                asyncio.run_coroutine_threadsafe(self.message_callback(mqtt_payload_str), self.loop)
+            else:
+                self.message_callback(mqtt_payload_str)
         except Exception as e:
-            logger.error(f"MQTT Error in notify: {e}")
+            logger.error(f"MQTT Error in notify: {e}", exc_info=True)
 
     def start(self):
         self.mqtt_client.start()
@@ -432,13 +439,16 @@ class PatientTelegramBot:
             mqtt_pub_topic = self.mqtt_pub_template.format(PATIENT_ID=patient_id)
             mqtt_client_id = self.client_id_template.format(PATIENT_ID=patient_id)
 
+            loop = asyncio.get_running_loop()
+
             self.mqtt_worker = TelegramMQTTWorker(
                 self.broker_ip,
                 self.broker_port,
                 mqtt_client_id,
                 mqtt_sub_topic,
                 mqtt_pub_topic,
-                self.handle_mqtt_alert
+                self.handle_mqtt_alert,
+                loop=loop,
             )
             self.mqtt_worker.start()
             logger.info(f"MQTT Worker started for patient {patient_id}")
@@ -585,12 +595,12 @@ class PatientTelegramBot:
                 
             elif query.data == "alert_done":
                 logger.info(f"Patient {patient_id} acknowledged alert")
-                await query.message.reply_text("✅ ¡Alerta reconocida! Gracias por tu confirmación.")
+                await query.message.reply_text("✅ Alert recognized! Thank you for confirmation.")
                 return await self._send_patient_main_menu(update, context)
             
             elif query.data == "alert_not_yet":
                 logger.info(f"Patient {patient_id} deferred alert action")
-                await query.message.reply_text("ℹ️ Entendido. Recuerda seguir las indicaciones de tu médico.")
+                await query.message.reply_text("ℹ️ Understood. Remember to follow your doctors indications.")
                 return await self._send_patient_main_menu(update, context)
 
             elif query.data == "command_meal":
@@ -654,9 +664,10 @@ class PatientTelegramBot:
     async def handle_mqtt_alert(self, mqtt_payload_str: str):
         try:
             alert = json.loads(mqtt_payload_str)
-            patient_id_from_alert = alert.get("patient_id")
-            alert_message = alert.get("alert_message", "New alert")
-
+            logger.info(mqtt_payload_str)
+            patient_id_from_alert = alert.get("patientID")
+            alert_message = alert.get("message", "New alert")
+            logger.info(f"handle_mqtt_alert: Received alert for patient {patient_id_from_alert}: {alert_message}")
             response_data = send_catalog_request_sync("GET", "patients", params={"userID": patient_id_from_alert})
             patient_data = response_data if isinstance(response_data, dict) and response_data.get('userID') == patient_id_from_alert else None
             
@@ -666,16 +677,16 @@ class PatientTelegramBot:
                 chat_id = patient_data["telegram_chat_id"]
                 logger.info(f"handle_mqtt_alert: Attempting to send message to chat ID: {chat_id} for patient {patient_id_from_alert}")
                 try:
-                    escaped_patient_id = _escape_markdown_v2(patient_id_from_alert)
+                    escaped_patient_id = _escape_markdown_v2(str(patient_id_from_alert))
                     escaped_alert_message = _escape_markdown_v2(alert_message)
 
                     await self.application.bot.send_message(
                         chat_id=chat_id,
-                        text=f"🚨 ALERTA para {escaped_patient_id}: {escaped_alert_message}",
+                        text=f"🚨 ALERT {escaped_patient_id}: {escaped_alert_message}",
                         parse_mode=ParseMode.MARKDOWN_V2,
                         reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("✅ Hecho", callback_data="alert_done")],
-                            [InlineKeyboardButton("❌ Todavía no", callback_data="alert_not_yet")]
+                            [InlineKeyboardButton("✅ Done", callback_data="alert_done")],
+                            [InlineKeyboardButton("❌ Not yet", callback_data="alert_not_yet")]
                         ])
                     )
                     logger.info(f"Sent alert to patient {patient_id_from_alert} (chat ID: {chat_id})")
@@ -769,7 +780,7 @@ if __name__ == "__main__":
         service_info = settings.get("serviceInfo", {})
         telegram_token = service_info.get("telegram_token")
         service_id = service_info.get("serviceID", "PatientTelegramBot")
-        mqtt_sub_template = service_info.get("MQTT_sub", "/notifications/alert/patient_{PATIENT_ID}")
+        mqtt_sub_template = service_info.get("MQTT_sub", "/notifications/alert/{PATIENT_ID}")
         mqtt_pub_template = service_info.get("MQTT_pub", "/status/meal/patient_{PATIENT_ID}")
         client_id_template = service_info.get("clientID", "telegram_patient_bot_{PATIENT_ID}")
 

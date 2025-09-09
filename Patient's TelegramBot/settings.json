@@ -6,7 +6,7 @@
         "serviceID": "PatientTelegramBot",
         "last_updated": "",
         "telegram_token": "7866450908:AAHyBVekxqL2mDZkKhYbHmuILPp-6sl03eA",
-        "MQTT_sub": "/notifications/alert", 
+        "MQTT_sub": "/notifications/alert/#", 
         "MQTT_pub": "/status/meal",
         "clientID": "telegram_patient_bot_{PATIENT_ID}"
     }

@@ -442,6 +442,8 @@ class DoctorBot:
                 json={
                     "api_key" : "ZUBPLJ508A3NGFS2",
                     "name": f"{(context.user_data['patient_name']).replace(' ', '_').lower()}_channel",
+                    "field1": "Glucose level",
+                    "field2": "Meal Status"
                 }
                 )
             
