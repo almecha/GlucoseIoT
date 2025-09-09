@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "glucoseiot",
-    "lastUpdate": "2025-09-09 14:55:16",
+    "lastUpdate": "2025-09-09 14:55:56",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -78,7 +78,7 @@
                 "/status/meal/#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-09 14:55:16"
+            "timestamp": "2025-09-09 14:55:56"
         },
         {
             "serviceID": "PatientTelegramBot_PATIENT_ID",
