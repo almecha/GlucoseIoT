@@ -37,14 +37,12 @@ class RaspberryPIPublisher:
 
 if __name__ == "__main__":
     catalog_uri = "http://0.0.0.0:9080"
-    broker=requests.get(f'{catalog_uri}/broker').json()['IP']
+    broker=requests.get(f'{catalog_uri}/broker').json()["IP"]
     port=requests.get(f'{catalog_uri}/broker').json()['port']
     client_id = "GlucoseMonitor_Publisher"
     topic_base = requests.get(f'{catalog_uri}/services/ThingspeakAdaptor').json()["MQTT_sub"][0]
 
     # Get sensors list
-    sensors = requests.get(f"{catalog_uri}/devices/all").json()
-    print(sensors)
     # Initialize publisher
     client_simplepub = RaspberryPIPublisher(client_id, broker, port)
     client_simplepub.startSim()
@@ -55,11 +53,13 @@ if __name__ == "__main__":
     try:
         while True:
 
+            sensors = requests.get(f"{catalog_uri}/devices/all").json()
+
             for sensor in sensors:
 
                 glucose_value = read_blood_glucose()  # Get simulated blood glucose reading
 
-                topic = topic_base + "/" + str(sensor["deviceID"])
+                topic = sensor["servicesDetails"][0]["topic"][0]
 
                 message_to_send = {
                     "bn": "GlucosIoT/sensor/glucose",

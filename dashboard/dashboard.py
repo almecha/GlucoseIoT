@@ -28,7 +28,6 @@ from auth import GlucoseIoTAuth
 # patientList = catalog["patientsList"]
 
 NUMBER_OF_ENTRIES_PER_REQUEST = 5
-USER_CHANNEL_ID = "2971820"
 READ_API_KEY = "2YN0JR2LKQFAV3BI"
 BASE_URL = "https://api.thingspeak.com/channels"
 ACCESS_CODE = "1234"
@@ -42,7 +41,7 @@ def user_api_keys(patient_id):
     if response.status_code == 200:
         user_data = response.json()
         if user_data and "userID" in user_data:
-            return user_data["thingspeak_info"]["apikeys"][0]
+            return user_data["thingspeak_info"]["apikeys"][0], user_data["thingspeak_info"]["channel"]
         else:
             st.error("User not found in the catalog.")
     return None
@@ -106,9 +105,9 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
     Read JSON data from the Thingspeak channel via REST API.
     Called on page refresh.
     """
-    read_api_key = user_api_keys(patientID)
+    read_api_key, channel_id = user_api_keys(patientID)
     print("Read API Key:", read_api_key)
-    url = f"{BASE_URL}/{USER_CHANNEL_ID}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
+    url = f"{BASE_URL}/{channel_id}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
     response = requests.get(url, timeout=5)  # Send GET request to the URL
     
     if response.status_code == 200:

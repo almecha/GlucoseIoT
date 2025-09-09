@@ -436,43 +436,43 @@ class DoctorBot:
                 doctor_id = int(doctor_id_str)
             
 
-            # # Register patient in Thingspeak and get API keys
-            # thingspeak_register_response = requests.post(
-            #     f"https://api.thingspeak.com/channels.json",
-            #     json={
-            #         "api_key" : "ZUBPLJ508A3NGFS2",
-            #         "name": f"{(context.user_data['patient_name']).replace(' ', '_').lower()}_channel",
-            #     }
-            #     )
+            # Register patient in Thingspeak and get API keys
+            thingspeak_register_response = requests.post(
+                f"https://api.thingspeak.com/channels.json",
+                json={
+                    "api_key" : "ZUBPLJ508A3NGFS2",
+                    "name": f"{(context.user_data['patient_name']).replace(' ', '_').lower()}_channel",
+                }
+                )
             
-            # if thingspeak_register_response.status_code != 200:
-            #     logger.error(f"Thingspeak registration failed: {thingspeak_register_response.text}")
-            #     await update.message.reply_text(
-            #         "❌ Failed to register patient in Thingspeak.",
-            #         reply_markup=self.main_menu(False)
-            #     )
-            #     return ConversationHandler.END
+            if thingspeak_register_response.status_code != 200:
+                logger.error(f"Thingspeak registration failed: {thingspeak_register_response.text}")
+                await update.message.reply_text(
+                    "❌ Failed to register patient in Thingspeak.",
+                    reply_markup=self.main_menu(False)
+                )
+                return ConversationHandler.END
             
-            # thingspeak_data = thingspeak_register_response.json()
+            thingspeak_data = thingspeak_register_response.json()
 
-            # write_api_key = thingspeak_data.get("api_keys", [{}])[0].get("api_key", "")
-            # read_api_key = thingspeak_data.get("api_keys", [{}])[1].get("api_key", "")
-            # channel_id = str(thingspeak_data.get("id", ""))
+            write_api_key = thingspeak_data.get("api_keys", [{}])[0].get("api_key", "")
+            read_api_key = thingspeak_data.get("api_keys", [{}])[1].get("api_key", "")
+            channel_id = str(thingspeak_data.get("id", ""))
 
-            # # Register patient in the dashboard
-            # dashboard_register_uri = requests.get(
-            #     f"{self.catalog_url}/services", params={"serviceID": "Dashboard"}
-            # ).json().get("REST_endpoint")
+            # Register patient in the dashboard
+            dashboard_register_uri = requests.get(
+                f"{self.catalog_url}/services", params={"serviceID": "Dashboard"}
+            ).json().get("REST_endpoint")
 
-            # dashboard_response = requests.post(
-            #     dashboard_register_uri,
-            #     json={
-            #         "username": (context.user_data['patient_name']).replace(" ","_").lower(),
-            #         "fields": {
-            #             "password": str((context.user_data['patient_name']).replace(" ","_").lower()) + "_dashboard"  # Simple default password
-            #         }
-            #     }
-            # )
+            dashboard_response = requests.post(
+                dashboard_register_uri,
+                json={
+                    "username": (context.user_data['patient_name']).replace(" ","_").lower(),
+                    "fields": {
+                        "password": str((context.user_data['patient_name']).replace(" ","_").lower()) + "_dashboard"  # Simple default password
+                    }
+                }
+            )
 
             # Prepare patient data with all thresholds for the Catalog
             patient_data = {
@@ -497,7 +497,7 @@ class DoctorBot:
                 },
                 "connected_devices": [{"deviceID": int(context.user_data['sensor_id'])}], 
                 "telegram_chat_id": None,
-                "thingspeak_info": {"apikeys": ['write_api_key', 'read_api_key'], "channel": 'channel_id'},
+                "thingspeak_info": {"apikeys": [ read_api_key, write_api_key], "channel": channel_id},
                 "dashboard_info": {
                     "dashboard_username": (context.user_data['patient_name']).replace(" ","_").lower(),
                     "dashboard_password": None
