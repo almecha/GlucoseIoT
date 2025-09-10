@@ -2,6 +2,7 @@
     "catalogURL": "http://catalog:9080",
     "reportsURL": "http://reports-generator:8093",
     "dashboardURL": "http://dashboard:8091",
+    "thingspeakURL": "https://api.thingspeak.com/channels",
     "brokerIP": "broker.hivemq.com",
     "brokerPort": 1883,
     "serviceInfo": {

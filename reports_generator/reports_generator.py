@@ -154,16 +154,30 @@ class ReportsGenerator(object):
         Read JSON data from the Thingspeak channel via REST API.
         Called on page refresh.
         """
+        logger.info(f"Fetching data from Thingspeak for patient {patientID}")
         read_api_key, read_channel = self.user_api_keys(patientID)
         
+        if not read_api_key or not read_channel:
+            logger.error(f"Missing API key or channel for patient {patientID}")
+            return None
+        logger.info(f"API Key: {read_api_key}, Channel: {read_channel}")
         url = f"{self.base_url}/{read_channel}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
-        response = requests.get(url, timeout=5)  # Send GET request to the URL
-        
-        if response.status_code == 200:
-            data = response.json()  # Parse JSON response
-            df = pd.DataFrame(data['feeds'])  # Convert 'feeds' to DataFrame
-            return df
-        return None
+        logger.info(f"Thingspeak URL: {url}")
+        try:
+            response = requests.get(url, timeout=10)
+            logger.info(f"Thingspeak response status: {response.status_code}")
+            
+            if response.status_code == 200:
+                data = response.json()
+                logger.info(f"Successfully fetched {len(data.get('feeds', []))} entries")
+                df = pd.DataFrame(data['feeds'])
+                return df
+            else:
+                logger.error(f"Thingspeak API error: {response.status_code} - {response.text}")
+                return None
+        except Exception as e:
+            logger.error(f"Error fetching from Thingspeak: {str(e)}")
+            return None
     
 
     def generate_report(self, patientID):
@@ -175,14 +189,18 @@ class ReportsGenerator(object):
         # Fetch data from thingspeak
         # CHANGE HERE RECENTLY TO WORK WITH CATALOG
         
-        
+        logger.info(f"Generating report for patient {patientID}")
         data = self.read_json_from_thingspeak(patientID, self.NUMBER_OF_ENTRIES_PER_REQUEST)
         # Check if the DataFrame is empty
-        if data is None:
-            return {"status":400}
-        
+        if data is None or data.empty:
+            logger.error(f"No data available for patient {patientID}")
+            return json.dumps({"status": 400, "error": "No data available"})
+        logger.info(f"Processing {len(data)} data points")
         # Calculate the metrics
         glucose_measurements = pd.to_numeric(data["field1"], errors="coerce").dropna().to_list()        
+        if not glucose_measurements:
+            logger.error("No valid glucose measurements found")
+            return json.dumps({"status": 400, "error": "No valid glucose measurements"})
         avg_glucose = sum(glucose_measurements) / len(glucose_measurements)
         min_glucose = min(glucose_measurements)
         max_glucose = max(glucose_measurements)
@@ -238,6 +256,10 @@ if __name__ == "__main__":
         }
         }
     cherrypy.tree.mount(web_service,'/',conf)
-    cherrypy.config.update({'server.socket_port':8093})
+    cherrypy.config.update({
+        'server.socket_host': '0.0.0.0',
+        'server.socket_port': 8093,
+        'engine.autoreload.on': False
+        })
     cherrypy.engine.start()
     cherrypy.engine.block()

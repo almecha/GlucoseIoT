@@ -10,5 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY reports_generator.py .
 COPY settings.json .
 
+EXPOSE 8093
 # Comando para ejecutar el servicio cuando el contenedor se inicie
 CMD ["python3", "reports_generator.py"]

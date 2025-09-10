@@ -48,12 +48,18 @@ def user_api_keys(patient_id):
     To extract user API keys from the catalog.
     """
     global catalog_url
+    logger.info(f"Fetching API keys for patient ID: {patient_id}")
     response = requests.get(f"{catalog_url}/patients", params={"userID": patient_id})
+    logger.info(f"Catalog response status: {response.status_code}")
     if response.status_code == 200:
         user_data = response.json()
         if user_data and "userID" in user_data:
-            return user_data["thingspeak_info"]["apikeys"][0], user_data["thingspeak_info"]["channel"]
+            api_key = user_data["thingspeak_info"]["apikeys"][0]
+            channel_id = user_data["thingspeak_info"]["channel"]
+            logger.info(f"Successfully retrieved API key and channel ID for patient {patient_id}")
+            return api_key, channel_id
         else:
+            logger.warning(f"User not found in catalog for patient ID: {patient_id}")
             st.error("User not found in the catalog.")
     return None
 
@@ -128,7 +134,9 @@ class Dashboard_REST_Worker(object):
         elif uri[0] ==  'dashboard' and uri[1] == 'register':
             try:
                 body = json.loads(cherrypy.request.body.read().decode("utf-8"))
+                logger.info(f"Received registration request: {body}")
             except json.JSONDecodeError:
+                logger.error("Invalid JSON body in registration request")
                 cherrypy.response.status = 400
                 return json.dumps({"error": "Invalid JSON body"}).encode('utf-8')
             
@@ -151,8 +159,10 @@ class Dashboard_REST_Worker(object):
                 with open(self.CONFIG_PATH, "w", encoding="utf-8") as f:
                     yaml.safe_dump(self.config_file, f, sort_keys=False, allow_unicode=True)
                     st_auth.Hasher.hash_passwords(self.config_file['credentials'])
+                    logger.info(f"Successfully updated user {username} in config")
                 return json.dumps({"status": "ok"}).encode("utf-8")
             else:
+                logger.error("Invalid username or fields in registration request")
                 cherrypy.response.status = 400
                 return json.dumps({"error": "Invalid 'username' or 'fields'"}).encode("utf-8")
 
@@ -173,18 +183,35 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
     Read JSON data from the Thingspeak channel via REST API.
     Called on page refresh.
     """
+    logger.info(f"Reading data from Thingspeak for patient {patientID}")
+
     read_api_key, channel_id = user_api_keys(patientID)
     print("Read API Key:", read_api_key)
+    logger.info(f"Read API Key: {read_api_key}, Channel ID: {channel_id}")
+    if not read_api_key or not channel_id:
+        logger.error("Missing API key or channel ID for Thingspeak")
+        return None
     url = f"{BASE_URL}/{channel_id}/fields/1.json?api_key={read_api_key}&results={number_of_entries}"
     print("Thingspeak URL:", url)
-    response = requests.get(url, timeout=5)  # Send GET request to the URL
+    logger.info(f"Thingspeak URL: {url}")
+    try:
+        response = requests.get(url, timeout=10)  # Send GET request to the URL
+        logger.info(f"Thingspeak response status: {response.status_code}")
+        
+        if response.status_code == 200:
+            data = response.json()  # Parse JSON response
+            logger.info(f"Successfully fetched {len(data.get('feeds', []))} entries from Thingspeak")
+            df = pd.DataFrame(data['feeds'])  # Convert 'feeds' to DataFrame
+            return df
+        else:
+            logger.warning(f"Failed to fetch data from Thingspeak. Status code: {response.status_code}")
+            logger.warning(f"Response text: {response.text}")
+            
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error fetching data from Thingspeak: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error reading from Thingspeak: {str(e)}")
     
-    if response.status_code == 200:
-        data = response.json()  # Parse JSON response
-        df = pd.DataFrame(data['feeds'])  # Convert 'feeds' to DataFrame
-        return df
-    
-    # st.warning(f"Failed to fetch data. Status code: {response.status_code}")
     return None
 
 
@@ -202,25 +229,40 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
 
 def display_user_tresholds():
     patient_id = st.session_state.get('patientID', 0)
-    response = requests.get(f"{catalog_url}/patients", params={"userID": patient_id})
-    if response.status_code == 200:
-        user_data = response.json()
-        if user_data and "threshold_parameters" in user_data:
-            thresholds = user_data["threshold_parameters"]
-            st.subheader("Your Glucose Thresholds")
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric(label="Target Glucose Level (Normal)", value=f"{thresholds['target_glucose_level_normal']} mg/dL")
-                st.metric(label="Target Glucose Level (Pre-meal Exercise)", value=f"{thresholds['target_glucose_level_excersise_premeal']} mg/dL")
-                st.metric(label="Target Glucose Level (Post-meal Exercise)", value=f"{thresholds['target_glucose_level_excersise_postmeal']} mg/dL")
-                st.metric(label="Max Daily Amount of Insulin", value=f"{thresholds['max_daily_amount_insulin']} units")
-            with col2:
-                st.metric(label="Low Threshold", value=f"{thresholds['low_threshold']} mg/dL")
-                st.metric(label="Extremely Low Threshold", value=f"{thresholds['extremely_low_threshold']} mg/dL")
-                st.metric(label="Fasting Threshold", value=f"{thresholds['fasting_threshold']} mg/dL")
-                st.metric(label="Severe Hyperglycemia Threshold", value=f"{thresholds['severe_hyperglycemia_threshold']} mg/dL")
+    logger.info(f"Fetching threshold parameters for patient {patient_id}")
+    try:
+        response = requests.get(f"{catalog_url}/patients", params={"userID": patient_id}, timeout=10)
+        logger.info(f"Threshold fetch response status: {response.status_code}")
+        
+        if response.status_code == 200:
+            user_data = response.json()
+            logger.info(f"User data for thresholds: {user_data}")
+            
+            if user_data and "threshold_parameters" in user_data:
+                thresholds = user_data["threshold_parameters"]
+                st.subheader("Your Glucose Thresholds")
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric(label="Target Glucose Level (Normal)", value=f"{thresholds['target_glucose_level_normal']} mg/dL")
+                    st.metric(label="Target Glucose Level (Pre-meal Exercise)", value=f"{thresholds['target_glucose_level_excersise_premeal']} mg/dL")
+                    st.metric(label="Target Glucose Level (Post-meal Exercise)", value=f"{thresholds['target_glucose_level_excersise_postmeal']} mg/dL")
+                    st.metric(label="Max Daily Amount of Insulin", value=f"{thresholds['max_daily_amount_insulin']} units")
+                with col2:
+                    st.metric(label="Low Threshold", value=f"{thresholds['low_threshold']} mg/dL")
+                    st.metric(label="Extremely Low Threshold", value=f"{thresholds['extremely_low_threshold']} mg/dL")
+                    st.metric(label="Fasting Threshold", value=f"{thresholds['fasting_threshold']} mg/dL")
+                    st.metric(label="Severe Hyperglycemia Threshold", value=f"{thresholds['severe_hyperglycemia_threshold']} mg/dL")
+            else:
+                logger.warning("No threshold parameters found in user data")
+                st.warning("No threshold parameters found for the user.")
         else:
-            st.warning("No threshold parameters found for the user.")
+            logger.warning(f"Failed to fetch threshold parameters. Status: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Request error fetching thresholds: {str(e)}")
+        st.error("Error connecting to catalog service for thresholds")
+    except Exception as e:
+        logger.error(f"Unexpected error fetching thresholds: {str(e)}")
+        st.error(f"Error fetching threshold parameters: {str(e)}")
 
 # CHECK THE REPORT AND ADAPT THE DASHVOARD TO IT
 def display_metrics(generatedReport):
@@ -229,6 +271,7 @@ def display_metrics(generatedReport):
     Called on page refresh.
     WILL BE REDONE LATER WITH REPORTS GENERATOR DATA
     """
+    logger.info(f"Displaying metrics from report: {generatedReport is not None}")
     if generatedReport is not None:
         st.subheader("Key Metrics")
         col1, col2, col3 = st.columns(3)  # Create a single row with two columns
@@ -263,6 +306,7 @@ def display_plot():
     Handles the creation and refreshing of the line chart.
     WILL BE REDONE LATER WITH THINGSPEAK DATA
     """
+    logger.info("Displaying plot")
     plot_placeholder = st.empty()
     patient_id = st.session_state.get('patientID', 0)
     df = read_json_from_thingspeak(patient_id)  # Fetch data from Thingspeak channel
@@ -292,6 +336,7 @@ def main_dash(patientID = 0, authenticator = None):
     patient_id = username_to_id(userName)
     st.session_state['patientID'] = patient_id
     print("Patient ID:", patient_id)
+    logger.info(f"Starting dashboard for user: {userName}")
 
     authenticator.logout_button() 
     authenticator.reset_password_button() 
@@ -305,12 +350,16 @@ def main_dash(patientID = 0, authenticator = None):
         df['field1'] = pd.to_numeric(df['field1'], errors='coerce')
         df = df.dropna(subset=['field1'])
         last_glucose_level = df['field1'].iloc[0] if not df.empty else None  
-
+    logger.info(f"Attempting to connect to reports generator at: {reports_url}")
+    logger.info(f"Request URL: {reports_url}/generate_report?patientID={st.session_state['patientID']}")
+    
     try:
         generatedReport = requests.get(
             f"{reports_url}/generate_report?patientID={st.session_state['patientID']}",
             timeout=5
         )
+        logger.info(f"Report generator response status: {generatedReport.status_code}")
+        logger.info(f"Report generator response content: {generatedReport.text}")
         if generatedReport.status_code == 200:
             display_metrics(generatedReport.json())
         else:
@@ -348,8 +397,9 @@ def username_to_id(userName):
 @st.cache_resource
 def start_cherrypy_once():
     # Mount your app before starting
+    logger.info("Starting CherryPy REST server")
     rest_worker = Dashboard_REST_Worker()
-
+    
     conf = {
         '/': {
             'request.dispatch': cherrypy.dispatch.MethodDispatcher(),
@@ -378,7 +428,9 @@ def start_cherrypy_once():
     return True
 
 if __name__ == "__main__":
+    
     global catalog_url, reports_url, service_id, rest_endpoint
+    logger.info("Dashboard application starting")
     settings_file_path = os.path.join(os.path.dirname(__file__), 'settings.json')
     try:
         with open(settings_file_path, 'r') as f:
