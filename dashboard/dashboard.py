@@ -61,13 +61,14 @@ def user_api_keys(patient_id):
 class Dashboard_REST_Worker(object):
     def __init__(self):
         self.config_file = yaml.safe_load(open('config.yaml'))
+        self.catalog_url = catalog_url
         self.CONFIG_PATH = 'config.yaml'
-        self.service_id = "dashboard_service"
+        self.service_id = service_id
         self.max_retries = 5
         self.retry_delay = 5  # seconds
         self.ensure_catalog_connection()
         self.register_service()
-        self.catalog_url = catalog_url
+
         
     # Catalog     
     def ensure_catalog_connection(self):
@@ -89,8 +90,8 @@ class Dashboard_REST_Worker(object):
     def register_service(self):
         """Register service with retry mechanism"""
         service_data = {
-            "serviceID": self.service_id,
-            "REST_endpoint": dashboard_url,   #check port
+            "serviceID": service_id,
+            "REST_endpoint": rest_endpoint,   #check port
             "MQTT_sub": [],
             "MQTT_pub": [],
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -363,6 +364,10 @@ if __name__ == "__main__":
         catalog_url = settings.get("catalogURL")
         reports_url = settings.get("reportsURL")
         dashboard_url = settings.get("dashboardURL")
+        service_info = settings.get("serviceInfo", {})
+        service_id = service_info.get("serviceID", "Dashboard")
+        rest_endpoint = service_info.get("REST_endpoint", dashboard_url)
+        
     except Exception as e:
         print(f"Error reading settings: {e}")
         exit(1)

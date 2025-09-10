@@ -15,18 +15,19 @@ logger = logging.getLogger(__name__)
 
 class ThresholdAnalyzer:
     exposed = True
-    def __init__(self, catalog, mqtt_broker, mqtt_port, topic_sub, topic_pub, thingspeak_base):
-        self.catalog_url = catalog
-        self.service_id = "threshold_analyzer_service"
+    def __init__(self):
+        self.catalog_url = catalog_url
+        self.service_id = service_id
         self.max_retries = 5
         self.retry_delay = 5  # seconds
-        self.ensure_catalog_connection()
-        self.register_service()
-        self.mqtt_broker = mqtt_broker
-        self.mqtt_port = mqtt_port
+        self.mqtt_broker = brokerIP
+        self.mqtt_port = brokerPort
         self.topic_glucose = topic_sub 
         self.topic_response = topic_pub  # e.g. "glucose_alerts/{patient_id}"
         self.thingspeak_base =  thingspeak_base # Thingspeak endpoint
+        # Initialize connection to Catalog
+        self.ensure_catalog_connection()
+        self.register_service()
 
         # Create the MQTT client and assign callbacks.
         self.client = mqtt.Client()
@@ -93,7 +94,7 @@ class ThresholdAnalyzer:
         To extract user API keys from the catalog.
         """
 
-        response = requests.get(f"{self.catalogURL}/patients", params={"userID": patient_id})
+        response = requests.get(f"{self.catalog_url}/patients", params={"userID": patient_id})
         if response.status_code == 200:
             user_data = response.json()
             if user_data and "userID" in user_data:
@@ -129,7 +130,7 @@ class ThresholdAnalyzer:
     # Retrieve patient information from the Thingspeak service
     def get_patient_info(self, device_id): # the device ID is posted by the sensor itself inside the MQTT topic
         try:
-            response = requests.get(f"{self.catalogURL}/patients",params={"userID": device_id} , timeout=5)
+            response = requests.get(f"{self.catalog_url}/patients",params={"userID": device_id} , timeout=5)
             if response.status_code == 200:
                 patient = response.json()
 
@@ -214,12 +215,12 @@ class ThresholdAnalyzer:
          - timestamp: date-time of the measurement
          - device_id: identifier of the glucose sensor/device
         """
-        logging.info(f"Received message on topic {msg.topic}: {msg.payload}")
+        
         try:
             payload = json.loads(msg.payload.decode())
             glucose = payload.get("e")[0]["v"]
             patient_id = msg.topic.split("/")[-1] # extract patient ID from the topic
-
+            logging.info(f"Received message on topic {msg.topic}: {msg.payload}")
             if glucose is None or patient_id is None:
                 logging.error("Message payload missing required fields ('glucose' or 'device_id').")
                 return
@@ -316,24 +317,23 @@ class ThresholdAnalyzer:
             logging.error(f"Error publishing response: {e}")
 
 
-if __name__ == "__main__":
-
-    
+if __name__ == "__main__":    
     settings_file_path = os.path.join(os.path.dirname(__file__), 'settings.json')
     try:
         with open(settings_file_path, 'r') as f:
             settings = json.load(f)
-        catalogURL = settings.get("catalogURL")
+        catalog_url = settings.get("catalogURL")
         brokerIP = settings.get("brokerIP")
         brokerPort = settings.get("brokerPort")
         service_info = settings.get("serviceInfo", {})
+        service_id = service_info.get("serviceID", "ThresholdAnalyzer")
         topic_sub = service_info.get("MQTT_sub", [None])[0]
         topic_pub = service_info.get("MQTT_pub", [None])[0]
         thingspeak_base = service_info.get("REST_endpoint")
     except Exception as e:
         print(f"Error reading settings: {e}")
         exit(1)
-    web_service = ThresholdAnalyzer(catalogURL,brokerIP,brokerPort,topic_sub, topic_pub, thingspeak_base)
+    web_service = ThresholdAnalyzer()
     conf={
         '/':{
         'request.dispatch':cherrypy.dispatch.MethodDispatcher(),

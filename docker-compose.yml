@@ -7,29 +7,37 @@ services:
       - ./catalog_branch/CATALOG.json:/app/CATALOG.json
     networks:
       - glucose_network
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:9080/config"]
+    #   interval: 10s
+    #   timeout: 5s
+    #   retries: 5
+    #   start_period: 10s
+    restart: unless-stopped
 
-  # doctor_bot:
-  #   build: "./Doctor's TelegramBot"
-  #   depends_on:
-  #     - catalog
-  #   networks:
-  #     - glucose_network
-  #   environment:
-  #     - INIT_DELAY=5  
-  #   restart: unless-stopped
+  doctor_bot:
+    build: "./Doctor's TelegramBot"
+    depends_on:
+      - catalog
+    networks:
+      - glucose_network
+    environment:
+      - INIT_DELAY=5  
+    restart: unless-stopped
 
-  # patients_bot:
-  #   build: "./Patient's TelegramBot"
-  #   depends_on:
-  #     - catalog
-  #     - mqtt-broker
-  #   networks:
-  #     - glucose_network
-  #   environment:
-  #     - INIT_DELAY=10  
-  #   restart: always
-  #   stdin_open: true  # Add these two lines
-  #   tty: true
+  patients_bot:
+    build: "./Patient's TelegramBot"
+    depends_on:
+      - catalog
+      - mqtt-broker
+    networks:
+      - glucose_network
+    environment:
+      - INIT_DELAY=10  
+      - CATALOG_URL=http://catalog:9080
+    restart: always
+    stdin_open: true  # Add these two lines
+    tty: true
 
   # MQTT Local Broker 
   mqtt-broker:
@@ -97,11 +105,6 @@ services:
       - CATALOG_URL=http://catalog:9080
       - THINGSPEAK_API_KEY=your_thingspeak_api_key
       - THINGSPEAK_CHANNEL_ID=your_channel_id
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://catalog:9080/config"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     restart: unless-stopped
 
   # Raspberry Pi Device Connector (Simulator)
@@ -109,7 +112,7 @@ services:
     build: ./device_connector
     depends_on:
       catalog:
-        condition: service_healthy
+        condition: service_started
       thingspeak-adaptor:
         condition: service_started
     networks:

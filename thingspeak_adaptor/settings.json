@@ -3,13 +3,16 @@
     "thingspeak_adaptorURL": "http://thingspeak_adaptor:8079",
     "ThingspeakWriteURL": "https://api.thingspeak.com/update?api_key=",
     "ThingspeakReadURL":  "https://api.thingspeak.com/channels",
+    "brokerIP": "broker.hivemq.com",
+    "brokerPort": 1883,
     "serviceInfo": {
-            "serviceID": "thingspeak_adaptor_service",
-            "REST_endpoint": "glucoseiot/thingspeak_adaptor",
+            "serviceID": "ThingspeakAdaptor",
+            "REST_endpoint": "https://api.thingspeak.com",
             "MQTT_sub": [
-                "/glucose_level/patient/#"
+                "/glucose_level/#",
+                "/status/meal/#"
             ],
             "MQTT_pub": [],
-            "timestamp": ""
-    }
+            "timestamp": "2025-09-09 17:28:22"
+        }
 }

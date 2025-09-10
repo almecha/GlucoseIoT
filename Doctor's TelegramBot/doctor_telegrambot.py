@@ -11,7 +11,7 @@ from telegram.ext import (
 from datetime import datetime
 
 time.sleep(2) # wait for other services to start
-# Enable logging
+# Enable loggings
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
     level=logging.INFO
@@ -27,7 +27,7 @@ class DoctorBot:
     def __init__(self, token: str, catalog_url: str):
         self.token = token
         self.catalog_url = catalog_url
-        self.service_id = "doctor_bot_service"
+        self.service_id = "DoctorTelegramBot"
         self.max_retries = 5
         self.retry_delay = 5  # seconds
         self.ensure_catalog_connection()
@@ -1238,6 +1238,7 @@ if __name__ == "__main__":
     import time
     time.sleep(10)  # Allow time for any previous logs to flush
     logger.info("Starting Doctor Bot...")
+    
     try:
         with open("settings.json") as f:
             config = json.load(f)

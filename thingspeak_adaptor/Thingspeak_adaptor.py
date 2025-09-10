@@ -6,6 +6,7 @@ import time
 import uuid
 import cherrypy
 import logging
+import os
 from datetime import datetime   
 time.sleep(2) # wait for other services to start
 
@@ -15,20 +16,27 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+
+# global variables
+catalog_url = ''
+broker_ip = ''
+broker_port = 0
+service_id = ''
+rest_endpoint = '' #base url for thingspeak
+mqtt_sub_topics = []
+thingspeak_write_url = ''
+thingspeak_read_url = ''
+
 
 class Thingspeak_MQTT_Worker:
-    def __init__(self,settings):
-        self.settings = settings
-        self.catalogURI = settings['catalogURL']
-
-        self.baseURL=self.settings["ThingspeakWriteURL"]
-        self.broker=self.settings["brokerIP"]
-        self.port=self.settings["brokerPort"]
-
-        print(f'Broker IP: {self.broker}, Port: {self.port}')
-
-        self.topic=self.settings["serviceInfo"]["MQTT_sub"][0]  # e.g. "glucose_data/#"
-        self.topic_meal=self.settings["serviceInfo"]["MQTT_sub"][1]  # e.g. "status/meal/#"
+    def __init__(self):        
+        self.catalog_url = catalog_url
+        self.base_url= thingspeak_write_url
+        self.broker=broker_ip
+        self.port=broker_port
+        self.topic=mqtt_sub_topics[0]  # e.g. "glucose_data/#"
+        self.topic_meal=mqtt_sub_topics[1]  # e.g. "status/meal/#"
        
         self.mqttClient = MyMQTT(clientID="nuha", broker=self.broker, port=self.port, notifier=self) #uuid is to generate a random string for the client id
         self.mqttClient.start()
@@ -40,7 +48,7 @@ class Thingspeak_MQTT_Worker:
 
         self.userApiKeys = {}
         self.sensorIDstoUserID = {}
-        self.patientList = requests.get(f'{self.catalogURI}/patients').json()
+        self.patientList = requests.get(f'{self.catalog_url}/patients').json()
 
         # Initialize user API keys
         for patient in self.patientList:
@@ -53,7 +61,7 @@ class Thingspeak_MQTT_Worker:
 
     # Create update patients func to run it periodically
     def updateFromCatalog(self):
-        self.patientList = requests.get(f'{self.catalogURI}/patients').json()
+        self.patientList = requests.get(f'{self.catalog_url}/patients').json()
 
         # Initialize user API keys
         for patient in self.patientList:
@@ -100,21 +108,18 @@ class Thingspeak_MQTT_Worker:
         #GET https://api.thingspeak.com/update?api_key={}field1={}
         #baseURL -> https://api.thingspeak.com/update?api_key=
         #fieldnumber -> depends on the field (type of measurement) we want to upload the information to
-        urlToSend=f'{self.baseURL}{patient_write_api_key}&field{field_number}={field_value}'
+        urlToSend=f'{thingspeak_write_url}{patient_write_api_key}&field{field_number}={field_value}'
         r=requests.get(urlToSend)
         print(r.json())
 
 
 class Thingspeak_Adaptor(object):
 
-    def __init__(self, settings):
-        self.settings = settings
+    def __init__(self):
         self.mqtt_worker = None
-        self.catalogURL=settings['catalogURL']
-        self.catalog_url = self.catalogURL
+        self.catalog_url = catalog_url
         self.actualTime = time.time()
-        self.service_id = "thingspeak_adaptor_service"
-        self.serviceInfo= requests.get(f'{self.catalogURL}/services/{self.service_id}').json()
+        self.service_id = service_id
         self.max_retries = 5
         self.retry_delay = 5  # seconds
         self.ensure_catalog_connection()
@@ -142,8 +147,8 @@ class Thingspeak_Adaptor(object):
         """Register service with retry mechanism"""
         service_data = {
             "serviceID": self.service_id,
-            "REST_endpoint": "http://thingspeak_adaptor:8079",   #check port
-            "MQTT_sub": [],
+            "REST_endpoint": rest_endpoint,   #check port
+            "MQTT_sub": mqtt_sub_topics,
             "MQTT_pub": [],
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
@@ -169,8 +174,11 @@ class Thingspeak_Adaptor(object):
         return False
     
     def start(self):
-        # Start the MQTT worker
-        self.mqtt_worker = Thingspeak_MQTT_Worker(self.settings)
+        try:
+            self.mqtt_worker = Thingspeak_MQTT_Worker()
+            logger.info("✅ MQTT worker started successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to start MQTT worker: {e}")
 
     def stop(self):
         # Stop the MQTT worker
@@ -180,22 +188,33 @@ class Thingspeak_Adaptor(object):
         cherrypy.engine.exit()
 
     def updateService(self):
-        self.serviceInfo['timestamp'] = time.time()
-        requests.put(f'{self.catalogURL}/services/ThingspeakAdaptor',data=json.dumps(self.serviceInfo))
+        service_data['timestamp'] = time.time()
+        requests.put(f'{self.catalog_url}/services/{service_id}',data=json.dumps(service_data))
 
 
 if __name__ == "__main__":
     time.sleep(2) # wait for other services to start
-    settings= json.load(open('settings.json')) 
-    catalogURL = settings.get("catalogURL")
-    brokerIP = settings.get("brokerIP")
-    brokerPort = settings.get("brokerPort")
+    settings_file_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+    with open(settings_file_path, 'r') as f:
+        settings = json.load(f)
+    catalog_url = settings.get("catalogURL")
+    broker_ip = settings.get("brokerIP")
+    broker_port = settings.get("brokerPort")
     service_info = settings.get("serviceInfo", {})
-    topic_sub = service_info.get("MQTT_sub", [None])[0]
-    topic_pub = service_info.get("MQTT_pub", [None])[0]
-    thingspeak_base = service_info.get("REST_endpoint")
+    service_id = service_info.get("serviceID", "ThingspeakAdaptor")
+    rest_endpoint = service_info.get("REST_endpoint", "http://thingspeak_adaptor:8079") 
+    mqtt_sub_topics = service_info.get("MQTT_sub", [])
+    thingspeak_write_url = settings.get("ThingspeakWriteURL") #base url for thingspeak
+    thingspeak_read_url = settings.get("ThingspeakReadURL")
+    service_data = {
+            "serviceID": service_id,
+            "REST_endpoint": rest_endpoint,   #check port
+            "MQTT_sub": mqtt_sub_topics,
+            "MQTT_pub": [],
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
      
-    ts_adaptor=Thingspeak_Adaptor(settings)
+    ts_adaptor=Thingspeak_Adaptor()
     ts_adaptor.start()
     print("Thingspeak Adaptor Started")
     try:

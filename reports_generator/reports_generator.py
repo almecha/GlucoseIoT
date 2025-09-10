@@ -28,7 +28,7 @@ class ReportsGenerator(object):
         self.base_url = thingspeak_url  # Base URL for the REST API
         self.reports_generator_url = reports_generator_url
         self.NUMBER_OF_ENTRIES_PER_REQUEST = 100
-        self.service_id = "reports_generator_service"
+        self.service_id = service_id
         self.max_retries = 5
         self.retry_delay = 5  # seconds
         self.ensure_catalog_connection()
@@ -57,8 +57,8 @@ class ReportsGenerator(object):
         service_data = {
             "serviceID": self.service_id,
             "REST_endpoint": self.reports_generator_url,   #check port
-            "MQTT_sub": [],
-            "MQTT_pub": [],
+            "MQTT_sub": MQTT_sub_topics,
+            "MQTT_pub": MQTT_pub_topics,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         for attempt in range(self.max_retries):
@@ -221,6 +221,11 @@ if __name__ == "__main__":
         catalog_url = settings.get("catalogURL")
         reports_generator_url = settings.get("reportsURL")
         thingspeak_url = settings.get("thingspeakURL")
+        service_info = settings.get("serviceInfo", {})
+        service_id = service_info.get("serviceID", "ReportsGenerator")
+        rest_endpoint = service_info.get("REST_endpoint", "http://reports_generator:8093")
+        MQTT_sub_topics = service_info.get("MQTT_sub", [])
+        MQTT_pub_topics = service_info.get("MQTT_pub", [])
     except Exception as e:
         print(f"Error reading settings: {e}")
         exit(1)

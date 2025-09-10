@@ -3,7 +3,10 @@
     "brokerIP": "broker.hivemq.com",
     "brokerPort": 1883,
     "serviceInfo": {
-        "serviceID": "RaspberryPi",
+        "serviceID": "DeviceConnector",
+        "REST_endpoint": "http://DeviceConnector:8181",
+        "MQTT_sub": [],
+        "MQTT_pub": [ "/glucose_level/patient_{patient_id}"],
         "last_updated": ""
     }
 }

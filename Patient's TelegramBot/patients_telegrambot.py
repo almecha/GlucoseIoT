@@ -45,7 +45,7 @@ def _escape_markdown_v2(text: str) -> str:
     return text
 
 def send_catalog_request_sync(method: str, endpoint: str, data: dict = None, params: dict = None, max_retries=5, retry_delay=3):
-    catalog_url = os.getenv("CATALOG_URL", "http://0.0.0.0:9080")
+    catalog_url = os.getenv("CATALOG_URL", "http://catalog:9080")
     url = f"{catalog_url}/{endpoint}"
     
     for attempt in range(max_retries):
@@ -214,8 +214,8 @@ class PatientTelegramBot:
         service_info = {
             "serviceID": self.service_id,
             "REST_endpoint": "",  # Usa string vacío como el doctor bot
-            "MQTT_sub": [],  # Usa array vacío como el doctor bot
-            "MQTT_pub": [],  # Usa array vacío como el doctor bot
+            "MQTT_sub": [mqtt_sub_template],  # Usa array vacío como el doctor bot
+            "MQTT_pub": [mqtt_pub_template],  # Usa array vacío como el doctor bot
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
@@ -783,15 +783,6 @@ if __name__ == "__main__":
         mqtt_sub_template = service_info.get("MQTT_sub", "/notifications/alert/{PATIENT_ID}")
         mqtt_pub_template = service_info.get("MQTT_pub", "/status/meal/patient_{PATIENT_ID}")
         client_id_template = service_info.get("clientID", "telegram_patient_bot_{PATIENT_ID}")
-
-        # telegram_token = os.getenv("TELEGRAM_TOKEN", telegram_token) # this looks at environment variable first, then at settings.json
-        # catalog_url = os.getenv("CATALOG_URL", catalog_url)
-        # broker_ip = os.getenv("BROKER_IP", broker_ip) 
-        # broker_port = int(os.getenv("BROKER_PORT", broker_port or 1883))
-        # service_id = os.getenv("SERVICE_ID", service_id)
-        # mqtt_sub_template = os.getenv("MQTT_SUB_TOPIC_TEMPLATE", mqtt_sub_template)
-        # mqtt_pub_template = os.getenv("MQTT_PUB_TOPIC_TEMPLATE", mqtt_pub_template)
-        # client_id_template = os.getenv("MQTT_CLIENT_ID_TEMPLATE", client_id_template)
 
         if not telegram_token:
             raise ValueError("Telegram token not found in settings.json or environment variables.")

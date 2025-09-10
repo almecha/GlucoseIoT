@@ -255,23 +255,22 @@ class Catalog:
             return json.dumps({"error": "Specify resource type to POST"}).encode('utf-8')
 
         resource_type = uri[0]
+        updated = False
 
         try:
             if resource_type == 'services':
                 if not Catalog.validate_service(body):
                     cherrypy.response.status = 400
                     return json.dumps({"error": "Invalid service format"}).encode('utf-8')
-                
+                updated = False
                 for i, service in enumerate(self.catalog["servicesList"]):
                     if service["serviceID"] == body["serviceID"]:
-                        # Servicio ya existe, actualizar en lugar de crear
                         self.catalog["servicesList"][i].update(body)
                         self.catalog["servicesList"][i]["timestamp"] = current_time
                         updated = True
                         break
 
                 if not updated:
-                    # Servicio no existe, crear nuevo
                     body["timestamp"] = current_time
                     self.catalog["servicesList"].append(body)
                     cherrypy.response.status = 201

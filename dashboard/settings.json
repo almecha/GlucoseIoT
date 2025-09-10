@@ -6,6 +6,9 @@
     "brokerPort": 1883,
     "serviceInfo": {
         "serviceID": "Dashboard",
+        "REST_endpoint": "http://0.0.0.0:8091/dashboard/register",
+        "MQTT_sub": [],
+        "MQTT_pub": [],
         "last_updated": ""
     }
 }

@@ -4,8 +4,15 @@
     "thingspeakURL": "https://api.thingspeak.com/channels",
     "brokerIP": "broker.hivemq.com",
     "brokerPort": 1883,
-    "serviceInfo": {
-        "serviceID": "Dashboard",
-        "last_updated": ""
-    }
+    "serviceInfo":{
+            "serviceID": "ReportsGenerator",
+            "REST_endpoint": "glucoseiot/reports_generator",
+            "MQTT_sub": [
+                "/notifications/alert/patient_#",
+                "/status/meal/patient_#",
+                "/glucose_level/patient_#"
+            ],
+            "MQTT_pub": [],
+            "timestamp": ""
+        }
 }

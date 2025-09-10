@@ -28,9 +28,10 @@ class RaspberryPIPublisher:
         self.broker = broker
         self.port = port
         self.simplePublisherClient = MyMQTT(clientID, broker, port, None)  # No subscriber needed
-        self.service_id = "device_connector_service"
+        self.service_id = "DeviceConnector"
         self.max_retries = 5
         self.retry_delay = 5  # seconds
+        self.catalog_url = catalog_url
         self.ensure_catalog_connection()
         self.register_service()
         
@@ -56,9 +57,9 @@ class RaspberryPIPublisher:
         """Register service with retry mechanism"""
         service_data = {
             "serviceID": self.service_id,
-            "REST_endpoint": "http://device_connector:",   #check port
+            "REST_endpoint": rest_endpoint,   #check port
             "MQTT_sub": [],
-            "MQTT_pub": [],
+            "MQTT_pub": [topic_base],
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         for attempt in range(self.max_retries):
@@ -103,36 +104,35 @@ if __name__ == "__main__":
     try:
         with open(settings_file_path, 'r') as f:
             settings = json.load(f)
-        catalog_uri = settings.get("catalogURL")
+        catalog_url = settings.get("catalogURL")
+        broker= settings.get("brokerIP")
+        port= settings.get("brokerPort")
+        service_info = settings.get("serviceInfo", {})
+        rest_endpoint = service_info.get("REST_endpoint", "")
+        service_id = service_info.get("serviceID", "")
     except Exception as e:
         print(f"Error reading settings: {e}")
         exit(1)
         
     #catalog_uri = "http://0.0.0.0:9080"
-    broker=requests.get(f'{catalog_uri}/broker').json()["IP"]
-    port=requests.get(f'{catalog_uri}/broker').json()['port']
+    # broker=requests.get(f'{catalog_ur}/broker').json()["IP"]
+    # port=requests.get(f'{catalog_uri}/broker').json()['port']
     client_id = "GlucoseMonitor_Publisher"
-    topic_base = requests.get(f'{catalog_uri}/services/ThingspeakAdaptor').json()["MQTT_sub"][0]
+    topic_base = requests.get(f'{catalog_url}/services/ThingspeakAdaptor').json()["MQTT_sub"][0]
 
     # Get sensors list
     # Initialize publisher
     client_simplepub = RaspberryPIPublisher(client_id, broker, port)
     client_simplepub.startSim()
 
-    
     base_time = int(time.time())  # Store base timestamp for relative timing
 
     try:
         while True:
-
-            sensors = requests.get(f"{catalog_uri}/devices/all").json()
-
+            sensors = requests.get(f"{catalog_url}/devices/all").json()
             for sensor in sensors:
-
                 glucose_value = read_blood_glucose()  # Get simulated blood glucose reading
-
                 topic = sensor["servicesDetails"][0]["topic"][0]
-
                 message_to_send = {
                     "bn": "GlucosIoT/sensor/glucose",
                     "e": [
