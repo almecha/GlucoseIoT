@@ -2,26 +2,85 @@ import json
 import cherrypy
 import requests
 import pandas as pd
+import logging
+import time
+from datetime import datetime
+import os
 
+time.sleep(2) # wait for other services to start
 '''
     We 100% need to put Thingspeak API keys in the catalog.json file.
     We need to create a new channel for each patient and put the API key in the catalog.json file.
     Store all the global constans (like basic urls, some constants like timeout time and etc.) in the catalog.json file.
 
 '''
+# Configure logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
+
 @cherrypy.expose
 class ReportsGenerator(object):
-    def __init__(self, catalog_file_path):
-        # self.catalog_file_path = catalog_file_path
-        # self.catalog = json.load(open(self.catalog_file_path, encoding='utf-8'))
-        self.catalog = "catalog"
-        # self.patientList = self.catalog["patientsList"]
-        # self.serviceDetails = self.catalog["serviceDetails"]
-        #self.base_url = requests.get(f"http://{self.catalog}/services/ThingspeakAdaptor").json()["REST_endpoint"]
-        self.base_url = "https://api.thingspeak.com/channels"  # Base URL for the REST API
+    def __init__(self,  catalog_url, reports_generator_url, thingspeak_url):
+        self.catalog_url = catalog_url
+        self.base_url = thingspeak_url  # Base URL for the REST API
+        self.reports_generator_url = reports_generator_url
         self.NUMBER_OF_ENTRIES_PER_REQUEST = 100
+        self.service_id = "reports_generator_service"
+        self.max_retries = 5
+        self.retry_delay = 5  # seconds
+        self.ensure_catalog_connection()
+        self.register_service()
+        
+        
+    # Catalog     
+    def ensure_catalog_connection(self):
+        """Ensure catalog service is available before proceeding"""
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.get(f"{self.catalog_url}/config", timeout=3)
+                if response.status_code == 200:
+                    logger.info("Successfully connected to Catalog service")
+                    return True
+            except requests.RequestException as e:
+                logger.warning(f"Attempt {attempt + 1}: Catalog not ready yet - {str(e)}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay)
 
+        logger.error("Failed to connect to Catalog service after multiple attempts")
+        return False
 
+    def register_service(self):
+        """Register service with retry mechanism"""
+        service_data = {
+            "serviceID": self.service_id,
+            "REST_endpoint": self.reports_generator_url,   #check port
+            "MQTT_sub": [],
+            "MQTT_pub": [],
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.post(
+                    f"{self.catalog_url}/services/{self.service_id}",
+                    json=service_data,
+                    timeout=5
+                )
+                if response.status_code in [200, 201]:
+                    logger.info("Service registered successfully with Catalog")
+                    return True
+                else:
+                    logger.warning(f"Service registration attempt {attempt + 1} failed: {response.text}")
+            except requests.RequestException as e:
+                logger.warning(f"Service registration attempt {attempt + 1} failed: {str(e)}")
+            
+            if attempt < self.max_retries - 1:
+                time.sleep(self.retry_delay)
+
+        logger.error("Failed to register service after multiple attempts")
+        return False
     
     def calculate_time_in_range(self, glucose_measurements):
         """
@@ -80,7 +139,7 @@ class ReportsGenerator(object):
         To extract user API keys from the catalog.
         """
 
-        response = requests.get("http://0.0.0.0:9080/patients", params={"userID": patient_id})
+        response = requests.get(f"{self.catalog_url}/patients", params={"userID": patient_id})
 
         if response.status_code == 200:
             user_data = response.json()
@@ -154,7 +213,18 @@ class ReportsGenerator(object):
             return "Unknown endpoint"
 
 if __name__ == "__main__":
-    web_service = ReportsGenerator("catalog.json")
+    settings_file_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+    try:
+        with open(settings_file_path, 'r') as f:
+            settings = json.load(f)
+        catalog_url = settings.get("catalogURL")
+        reports_generator_url = settings.get("reportsURL")
+        thingspeak_url = settings.get("thingspeakURL")
+    except Exception as e:
+        print(f"Error reading settings: {e}")
+        exit(1)
+        
+    web_service = ReportsGenerator(catalog_url, reports_generator_url, thingspeak_url)
     conf={
         '/':{
         'request.dispatch':cherrypy.dispatch.MethodDispatcher(),

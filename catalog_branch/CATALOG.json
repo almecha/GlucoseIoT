@@ -7,112 +7,12 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "glucoseiot",
-    "lastUpdate": "2025-09-09 13:25:06",
+    "lastUpdate": "2025-09-09 14:59:15",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
     },
-    "servicesList": [
-        {
-            "serviceID": "ThresholdAnalyzer",
-            "REST_endpoint": "glucoseiot/threshold",
-            "MQTT_sub": [
-                "/glucose_level/patient_#"
-            ],
-            "MQTT_pub": [
-                "/notifications/alert/patient_{patient_id}"
-            ],
-            "serviceDetails": [],
-            "timestamp": ""
-        },
-        {
-            "serviceID": "PatientTelegramBot",
-            "REST_endpoint": "",
-            "MQTT_sub": [],
-            "MQTT_pub": [],
-            "timestamp": "2025-09-08 16:51:32"
-        },
-        {
-            "serviceID": "DoctorTelegramBot",
-            "REST_endpoint": "glucoseiot/telegram/doctor",
-            "MQTT_sub": [],
-            "MQTT_pub": [],
-            "timestamp": ""
-        },
-        {
-            "serviceID": "ReportsGenerator",
-            "REST_endpoint": "glucoseiot/reports_generator",
-            "MQTT_sub": [
-                "/notifications/alert/patient_#",
-                "/status/meal/patient_#",
-                "/glucose_level/patient_#"
-            ],
-            "MQTT_pub": [],
-            "timestamp": ""
-        },
-        {
-            "serviceID": "Dashboard",
-            "REST_endpoint": "http://0.0.0.0:8091/dashboard/register",
-            "MQTT_sub": [
-                "/notifications/alert/patient_#",
-                "/status/meal/patient_#",
-                "/glucose_level/patient_#"
-            ],
-            "MQTT_pub": [],
-            "timestamp": ""
-        },
-        {
-            "serviceID": "GlucoseLevelSensor",
-            "REST_endpoint": "glucoseiot/glucose_level_sensor",
-            "MQTT_sub": [],
-            "MQTT_pub": [
-                "/glucose_level/patient_{patient_id}"
-            ],
-            "timestamp": ""
-        },
-        {
-            "serviceID": "ThingspeakAdaptor",
-            "REST_endpoint": "https://api.thingspeak.com",
-            "MQTT_sub": [
-                "/glucose_level/#"
-            ],
-            "MQTT_pub": [],
-            "timestamp": "2025-09-09 13:25:06"
-        },
-        {
-            "serviceID": "PatientTelegramBot_PATIENT_ID",
-            "REST_endpoint": "",
-            "MQTT_sub": [
-                "/notifications/alert/patient_PATIENT_ID"
-            ],
-            "MQTT_pub": [
-                "/status/meal/patient_PATIENT_ID"
-            ],
-            "timestamp": "2025-07-22 21:38:23",
-            "last_updated": 1753220303
-        },
-        {
-            "serviceID": "PatientTelegramBot_patient_001",
-            "REST_endpoint": "",
-            "MQTT_sub": [
-                "/notifications/alert/patient_patient_001"
-            ],
-            "MQTT_pub": [
-                "/status/meal/patient_patient_001"
-            ],
-            "timestamp": "2025-07-22 22:09:44",
-            "last_updated": 1753222184
-        },
-        {
-            "serviceID": "doctor_bot_service",
-            "REST_endpoint": "",
-            "MQTT_sub": [],
-            "MQTT_pub": [],
-            "description": "Telegram interface for doctors",
-            "timestamp": "2025-09-09 13:20:15"
-        }
-    ],
-    "serviceDetails": [],
+    "servicesList": [],
     "devicesList": [
         {
             "deviceID": 228,

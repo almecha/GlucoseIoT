@@ -1,44 +1,32 @@
-import json, requests, logging, cherrypy, math, os
+import json, requests, logging, cherrypy, math, os, time
 import paho.mqtt.client as mqtt
 from datetime import datetime, timedelta, timezone
 
+time.sleep(2) # wait for other services to start
+
 # print info for troubleshooting
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 
 class ThresholdAnalyzer:
     exposed = True
-    def __init__(self, catalog):
+    def __init__(self, catalog, mqtt_broker, mqtt_port, topic_sub, topic_pub, thingspeak_base):
         self.catalogURL = catalog
-
-        # Extract MQTT broker and port
-        response = requests.get(f"{self.catalogURL}/broker", timeout=5)
-        if response.status_code == 200:
-            self.broker = response.json()
-            self.mqtt_broker = self.broker["IP"]
-            self.mqtt_port = self.broker["port"]
-        else:
-            raise Exception(f"Failed to fetch broker: {response.status_code}")
-
-
-        # Extract the topics for the threshold analyzer from the catalog
-        response = requests.get(f"{self.catalogURL}/services/ThresholdAnalyzer", timeout=5)
-        if response.status_code == 200:
-            service = response.json()
-            self.topic_glucose = service["MQTT_sub"][0]
-            self.topic_response = service["MQTT_pub"][0]
-        else:
-            raise Exception(f"Failed to fetch service details: {response.status_code}")
-
-
-        # Extract Thingspeak endpoint
-        response = requests.get(f"{self.catalogURL}/services/ThingspeakAdaptor", timeout=5)
-        if response.status_code == 200:
-            service = response.json()
-            self.thingspeak_base = service["REST_endpoint"]
-        else:
-            raise Exception(f"Failed to fetch ThingspeakAdaptor details: {response.status_code}")
-
+        self.catalog_url = catalog
+        self.service_id = "threshold_analyzer_service"
+        self.max_retries = 5
+        self.retry_delay = 5  # seconds
+        self.ensure_catalog_connection()
+        self.register_service()
+        self.mqtt_broker = mqtt_broker
+        self.mqtt_port = mqtt_port
+        self.topic_glucose = topic_sub 
+        self.topic_response = topic_pub  # e.g. "glucose_alerts/{patient_id}"
+        self.thingspeak_base =  thingspeak_base # Thingspeak endpoint
 
         # Create the MQTT client and assign callbacks.
         self.client = mqtt.Client()
@@ -51,6 +39,53 @@ class ThresholdAnalyzer:
             self.client.loop_start()
         except Exception as exc:
             logging.error(f"MQTT connection error: {exc}")
+            
+        # Catalog     
+    def ensure_catalog_connection(self):
+        """Ensure catalog service is available before proceeding"""
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.get(f"{self.catalog_url}/config", timeout=3)
+                if response.status_code == 200:
+                    logger.info("Successfully connected to Catalog service")
+                    return True
+            except requests.RequestException as e:
+                logger.warning(f"Attempt {attempt + 1}: Catalog not ready yet - {str(e)}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay)
+
+        logger.error("Failed to connect to Catalog service after multiple attempts")
+        return False
+
+    def register_service(self):
+        """Register service with retry mechanism"""
+        service_data = {
+            "serviceID": self.service_id,
+            "REST_endpoint": "http://threshold_analyzer:8080",   #check port
+            "MQTT_sub": [],
+            "MQTT_pub": [],
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.post(
+                    f"{self.catalog_url}/services/{self.service_id}",
+                    json=service_data,
+                    timeout=5
+                )
+                if response.status_code in [200, 201]:
+                    logger.info("Service registered successfully with Catalog")
+                    return True
+                else:
+                    logger.warning(f"Service registration attempt {attempt + 1} failed: {response.text}")
+            except requests.RequestException as e:
+                logger.warning(f"Service registration attempt {attempt + 1} failed: {str(e)}")
+            
+            if attempt < self.max_retries - 1:
+                time.sleep(self.retry_delay)
+
+        logger.error("Failed to register service after multiple attempts")
+        return False
 
 
     def GET(self):
@@ -273,8 +308,22 @@ class ThresholdAnalyzer:
 
 
 if __name__ == "__main__":
-    catalogURL = os.getenv("CATALOG_URL", "http://localhost:9080")
-    web_service = ThresholdAnalyzer(catalogURL)
+    
+    settings_file_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+    try:
+        with open(settings_file_path, 'r') as f:
+            settings = json.load(f)
+        catalogURL = settings.get("catalogURL")
+        brokerIP = settings.get("brokerIP")
+        brokerPort = settings.get("brokerPort")
+        service_info = settings.get("serviceInfo", {})
+        topic_sub = service_info.get("MQTT_sub", [None])[0]
+        topic_pub = service_info.get("MQTT_pub", [None])[0]
+        thingspeak_base = service_info.get("REST_endpoint")
+    except Exception as e:
+        print(f"Error reading settings: {e}")
+        exit(1)
+    web_service = ThresholdAnalyzer(catalogURL,brokerIP,brokerPort,topic_sub, topic_pub, thingspeak_base)
     conf={
         '/':{
         'request.dispatch':cherrypy.dispatch.MethodDispatcher(),

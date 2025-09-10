@@ -8,6 +8,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY Raspberry_Publisher.py .
+COPY MyMQTT.py .
+COPY settings.json .
 
 #EXPOSE 9080
 

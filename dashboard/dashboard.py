@@ -23,21 +23,33 @@ import cherrypy
 import streamlit as st
 import streamlit_authenticator as st_auth
 from auth import GlucoseIoTAuth
+import os
+import logging
+import time
+import datetime
+from datetime import datetime
 
 # catalog = json.load(open('../catalog.json', encoding='utf-8'))
 # patientList = catalog["patientsList"]
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
 NUMBER_OF_ENTRIES_PER_REQUEST = 5
 READ_API_KEY = "2YN0JR2LKQFAV3BI"
 BASE_URL = "https://api.thingspeak.com/channels"
 ACCESS_CODE = "1234"
 
+
 def user_api_keys(patient_id):
     """
     To extract user API keys from the catalog.
     """
 
-    response = requests.get("http://0.0.0.0:9080/patients", params={"userID": patient_id})
+    response = requests.get(f"{catalog_url}/patients", params={"userID": patient_id})
     if response.status_code == 200:
         user_data = response.json()
         if user_data and "userID" in user_data:
@@ -52,6 +64,59 @@ class Dashboard_REST_Worker(object):
     def __init__(self):
         self.config_file = yaml.safe_load(open('config.yaml'))
         self.CONFIG_PATH = 'config.yaml'
+        self.service_id = "dashboard_service"
+        self.max_retries = 5
+        self.retry_delay = 5  # seconds
+        self.ensure_catalog_connection()
+        self.register_service()
+        self.catalog_url = catalog_url
+        
+    # Catalog     
+    def ensure_catalog_connection(self):
+        """Ensure catalog service is available before proceeding"""
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.get(f"{self.catalog_url}/config", timeout=3)
+                if response.status_code == 200:
+                    logger.info("Successfully connected to Catalog service")
+                    return True
+            except requests.RequestException as e:
+                logger.warning(f"Attempt {attempt + 1}: Catalog not ready yet - {str(e)}")
+                if attempt < self.max_retries - 1:
+                    time.sleep(self.retry_delay)
+
+        logger.error("Failed to connect to Catalog service after multiple attempts")
+        return False
+
+    def register_service(self):
+        """Register service with retry mechanism"""
+        service_data = {
+            "serviceID": self.service_id,
+            "REST_endpoint": dashboard_url,   #check port
+            "MQTT_sub": [],
+            "MQTT_pub": [],
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        for attempt in range(self.max_retries):
+            try:
+                response = requests.post(
+                    f"{self.catalog_url}/services/{self.service_id}",
+                    json=service_data,
+                    timeout=5
+                )
+                if response.status_code in [200, 201]:
+                    logger.info("Service registered successfully with Catalog")
+                    return True
+                else:
+                    logger.warning(f"Service registration attempt {attempt + 1} failed: {response.text}")
+            except requests.RequestException as e:
+                logger.warning(f"Service registration attempt {attempt + 1} failed: {str(e)}")
+            
+            if attempt < self.max_retries - 1:
+                time.sleep(self.retry_delay)
+
+        logger.error("Failed to register service after multiple attempts")
+        return False
     
     def POST(self, *uri, **params):
         if len(uri) == 0:
@@ -133,7 +198,7 @@ def read_json_from_thingspeak(patientID, number_of_entries=NUMBER_OF_ENTRIES_PER
 
 def display_user_tresholds():
     patient_id = st.session_state.get('patientID', 0)
-    response = requests.get("http://0.0.0.0:9080/patients", params={"userID": patient_id})
+    response = requests.get(f"{catalog_url}/patients", params={"userID": patient_id})
     if response.status_code == 200:
         user_data = response.json()
         if user_data and "threshold_parameters" in user_data:
@@ -232,7 +297,7 @@ def main_dash(patientID = 0, authenticator = None):
         df = df.dropna(subset=['field1'])
         last_glucose_level = df['field1'].iloc[0] if not df.empty else None  
 
-    generatedReport = requests.get(f"http://127.0.0.1:8093/generate_report?patientID={st.session_state['patientID']}")
+    generatedReport = requests.get(f"{reports_url}/generate_report?patientID={st.session_state['patientID']}")
     if generatedReport.status_code == 200:
         display_metrics(generatedReport.json())
     else:
@@ -247,7 +312,7 @@ def username_to_id(userName):
     """
     Convert username to patient ID.
     """
-    response = requests.get("http://0.0.0.0:9080/patients", params={"username": userName})
+    response = requests.get(f"{catalog_url}/patients", params={"username": userName})
 
     if response.status_code == 200:
         user_data = response.json()
@@ -290,6 +355,17 @@ def start_cherrypy_once():
     return True
 
 if __name__ == "__main__":
+    settings_file_path = os.path.join(os.path.dirname(__file__), 'settings.json')
+    try:
+        with open(settings_file_path, 'r') as f:
+            settings = json.load(f)
+        catalog_url = settings.get("catalogURL")
+        reports_url = settings.get("reportsURL")
+        dashboard_url = settings.get("dashboardURL")
+    except Exception as e:
+        print(f"Error reading settings: {e}")
+        exit(1)
+        
     st.set_page_config(page_title="Dashboard", layout="wide")
     # Start CherryPy REST server (only once across reruns)
     start_cherrypy_once()

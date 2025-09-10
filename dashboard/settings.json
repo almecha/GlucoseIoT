@@ -1,0 +1,11 @@
+{
+    "catalogURL": "http://catalog:9080",
+    "reportsURL": "http://reports:8093",
+    "dashboardURL": "http://dashboard:8091",
+    "brokerIP": "broker.hivemq.com",
+    "brokerPort": 1883,
+    "serviceInfo": {
+        "serviceID": "Dashboard",
+        "last_updated": ""
+    }
+}

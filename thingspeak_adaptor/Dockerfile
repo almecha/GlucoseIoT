@@ -12,4 +12,4 @@ COPY MyMQTT.py .
 COPY settings.json .
 
 # Comando para ejecutar el servicio cuando el contenedor se inicie
-CMD ["python3", "patients_telegrambot.py"]
+CMD ["python3", "Thingspeak_adaptor.py"]

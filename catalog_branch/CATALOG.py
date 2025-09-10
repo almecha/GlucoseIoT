@@ -79,7 +79,7 @@ class Catalog:
     @staticmethod
     def validate_service(data):
         required_fields = {
-            "serviceID": int,
+            "serviceID": str,
             "REST_endpoint": str,
             "MQTT_sub": list,
             "MQTT_pub": list,
