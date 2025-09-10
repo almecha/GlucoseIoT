@@ -1,12 +1,12 @@
 {
     "catalogURL": "http://catalog:9080",
-    "reportsURL": "http://reports:8093",
+    "reportsURL": "http://reports-generator:8093",
     "dashboardURL": "http://dashboard:8091",
     "brokerIP": "broker.hivemq.com",
     "brokerPort": 1883,
     "serviceInfo": {
         "serviceID": "Dashboard",
-        "REST_endpoint": "http://0.0.0.0:8091/dashboard/register",
+        "REST_endpoint": "http://dashboard:8091/dashboard/register",
         "MQTT_sub": [],
         "MQTT_pub": [],
         "last_updated": ""

@@ -53,12 +53,11 @@ services:
   # Dashboard
   dashboard:
     build: ./dashboard
-    ports:
-      - "8091:8091"  # React app port
-      #- "5000:5000"  # Backend API port (if needed)
     depends_on:
       - catalog
       - reports-generator
+    ports:
+      - "8501:8501"  # Streamlit port
     networks:
       - glucose_network
     environment:

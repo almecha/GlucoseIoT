@@ -16,6 +16,7 @@ COPY auth.py .
 COPY settings.json .
 COPY config.yaml .
 
+EXPOSE 8501 8091
 
 # Comando para ejecutar el servicio cuando el contenedor se inicie
-CMD ["streamlit", "run", "dashboard.py"]
+CMD ["streamlit", "run", "dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]

@@ -29,6 +29,7 @@ import time
 import datetime
 from datetime import datetime
 
+
 # catalog = json.load(open('../catalog.json', encoding='utf-8'))
 # patientList = catalog["patientsList"]
 # Enable logging
@@ -46,7 +47,7 @@ def user_api_keys(patient_id):
     """
     To extract user API keys from the catalog.
     """
-
+    global catalog_url
     response = requests.get(f"{catalog_url}/patients", params={"userID": patient_id})
     if response.status_code == 200:
         user_data = response.json()
@@ -68,7 +69,10 @@ class Dashboard_REST_Worker(object):
         self.retry_delay = 5  # seconds
         self.ensure_catalog_connection()
         self.register_service()
-
+        if not self.ensure_catalog_connection():
+            logger.error("Failed to connect to Catalog service during initialization.")
+        if not self.register_service():
+            logger.error("Failed to register service during initialization.")
         
     # Catalog     
     def ensure_catalog_connection(self):
@@ -282,9 +286,12 @@ def main_dash(patientID = 0, authenticator = None):
     """
     Main function to run the dashboard.
     """
+    global catalog_url, reports_url
+    
     userName = st.session_state['username']
-    st.session_state['patientID'] = username_to_id(userName)
-    print("Patient ID:", st.session_state['patientID'])
+    patient_id = username_to_id(userName)
+    st.session_state['patientID'] = patient_id
+    print("Patient ID:", patient_id)
 
     authenticator.logout_button() 
     authenticator.reset_password_button() 
@@ -299,11 +306,22 @@ def main_dash(patientID = 0, authenticator = None):
         df = df.dropna(subset=['field1'])
         last_glucose_level = df['field1'].iloc[0] if not df.empty else None  
 
-    generatedReport = requests.get(f"{reports_url}/generate_report?patientID={st.session_state['patientID']}")
-    if generatedReport.status_code == 200:
-        display_metrics(generatedReport.json())
-    else:
-        st.warning("No report data available yet.")
+    try:
+        generatedReport = requests.get(
+            f"{reports_url}/generate_report?patientID={st.session_state['patientID']}",
+            timeout=5
+        )
+        if generatedReport.status_code == 200:
+            display_metrics(generatedReport.json())
+        else:
+            st.warning(f"Report generator responded with status: {generatedReport.status_code}")
+    except requests.exceptions.ConnectionError:
+        st.error("Cannot connect to reports generator service")
+    except requests.exceptions.Timeout:
+        st.warning("Report generator timeout")
+    except Exception as e:
+        st.error(f"Error fetching report: {e}")
+    
     display_user_tresholds()
 
     display_plot() 
@@ -314,14 +332,17 @@ def username_to_id(userName):
     """
     Convert username to patient ID.
     """
-    response = requests.get(f"{catalog_url}/patients", params={"username": userName})
-
-    if response.status_code == 200:
-        user_data = response.json()
-        if user_data and "userID" in user_data:
-            return user_data["userID"]
-        else:
-            st.error("User not found in the catalog.")
+    global catalog_url
+    try: 
+        response = requests.get(f"{catalog_url}/patients", params={"username": userName})
+        if response.status_code == 200:
+            user_data = response.json()
+            if user_data and "userID" in user_data:
+                return user_data["userID"]
+            else:
+                st.error("User not found in the catalog.")
+    except Exception as e:
+        st.error(f"Error connecting to catalog: {e} - username to id")
     return None
 
 @st.cache_resource
@@ -357,10 +378,13 @@ def start_cherrypy_once():
     return True
 
 if __name__ == "__main__":
+    global catalog_url, reports_url, service_id, rest_endpoint
     settings_file_path = os.path.join(os.path.dirname(__file__), 'settings.json')
     try:
         with open(settings_file_path, 'r') as f:
             settings = json.load(f)
+        
+        
         catalog_url = settings.get("catalogURL")
         reports_url = settings.get("reportsURL")
         dashboard_url = settings.get("dashboardURL")
@@ -368,11 +392,27 @@ if __name__ == "__main__":
         service_id = service_info.get("serviceID", "Dashboard")
         rest_endpoint = service_info.get("REST_endpoint", dashboard_url)
         
+        logger.info(f"Catalog URL: {catalog_url}")
+        logger.info(f"Reports URL: {reports_url}")
+    
     except Exception as e:
         print(f"Error reading settings: {e}")
         exit(1)
         
+    # Verify connection to Catalog service    
+    try: 
+        response = requests.get(f"{catalog_url}/config", timeout=5)
+        if response.status_code == 200:
+            logger.info("Successfully connected to Catalog service")
+        else:
+            logger.error(f"Failed to connect to Catalog service: {response.status_code}")
+    except requests.RequestException as e:
+        logger.error(f"Error connecting to Catalog service: {str(e)}")
+        exit(1)
+        
+    # Set up Streamlit page configuration
     st.set_page_config(page_title="Dashboard", layout="wide")
+    
     # Start CherryPy REST server (only once across reruns)
     start_cherrypy_once()
     authenticator = GlucoseIoTAuth("config.yaml")

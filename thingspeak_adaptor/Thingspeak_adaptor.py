@@ -202,7 +202,7 @@ if __name__ == "__main__":
     broker_port = settings.get("brokerPort")
     service_info = settings.get("serviceInfo", {})
     service_id = service_info.get("serviceID", "ThingspeakAdaptor")
-    rest_endpoint = service_info.get("REST_endpoint", "http://thingspeak_adaptor:8079") 
+    rest_endpoint = service_info.get("REST_endpoint", "http://thingspeak-adaptor:8079") 
     mqtt_sub_topics = service_info.get("MQTT_sub", [])
     thingspeak_write_url = settings.get("ThingspeakWriteURL") #base url for thingspeak
     thingspeak_read_url = settings.get("ThingspeakReadURL")

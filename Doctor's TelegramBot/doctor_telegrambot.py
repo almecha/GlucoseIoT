@@ -1245,7 +1245,7 @@ if __name__ == "__main__":
             
         bot = DoctorBot(
             token=config["telegram_token"],
-            catalog_url=config["catalog_url"]
+            catalog_url= "http://catalog:9080"
         )
         bot.run()
     except FileNotFoundError:

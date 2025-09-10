@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "glucoseiot",
-    "lastUpdate": "2025-09-10 14:03:40",
+    "lastUpdate": "2025-09-10 15:28:55",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -22,7 +22,7 @@
             "MQTT_pub": [
                 "/status/meal/{PATIENT_ID}"
             ],
-            "timestamp": "2025-09-10 13:56:18"
+            "timestamp": "2025-09-10 15:26:54"
         },
         {
             "serviceID": "ThingspeakAdaptor",
@@ -32,25 +32,25 @@
                 "/status/meal/#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 14:03:40"
+            "timestamp": "2025-09-10 15:28:55"
         },
         {
             "serviceID": "ReportsGenerator",
-            "REST_endpoint": "http://reports:8093",
+            "REST_endpoint": "http://reports-generator:8093",
             "MQTT_sub": [
                 "/notifications/alert/patient_#",
                 "/status/meal/patient_#",
                 "/glucose_level/patient_#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 13:56:18"
+            "timestamp": "2025-09-10 15:26:53"
         },
         {
             "serviceID": "ThresholdAnalyzer",
             "REST_endpoint": "http://threshold_analyzer:8080",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 13:56:18"
+            "timestamp": "2025-09-10 15:26:53"
         },
         {
             "serviceID": "DeviceConnector",
@@ -59,14 +59,21 @@
             "MQTT_pub": [
                 "/glucose_level/#"
             ],
-            "timestamp": "2025-09-10 13:56:17"
+            "timestamp": "2025-09-10 15:26:52"
         },
         {
             "serviceID": "DoctorTelegramBot",
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 13:56:27"
+            "timestamp": "2025-09-10 15:27:02"
+        },
+        {
+            "serviceID": "Dashboard",
+            "REST_endpoint": "http://dashboard:8091/dashboard/register",
+            "MQTT_sub": [],
+            "MQTT_pub": [],
+            "timestamp": "2025-09-10 15:27:10"
         }
     ],
     "serviceDetails": [],
@@ -130,6 +137,26 @@
                 }
             ],
             "lastUpdate": "2025-09-09 16:19:28"
+        },
+        {
+            "deviceID": 1,
+            "deviceName": "GlucoseSensor",
+            "device_type": "sensor",
+            "measureType": [
+                "Glucose"
+            ],
+            "availableServices": [
+                "MQTT"
+            ],
+            "servicesDetails": [
+                {
+                    "serviceType": "MQTT",
+                    "topic": [
+                        "/glucose_level/1001"
+                    ]
+                }
+            ],
+            "lastUpdate": "2025-09-10 15:27:26"
         }
     ],
     "doctorsList": [
@@ -144,7 +171,8 @@
                 130293,
                 21312231,
                 434343,
-                5555
+                5555,
+                1001
             ],
             "lastUpdate": "2025-09-08 16:29:24"
         },
@@ -279,6 +307,45 @@
                 "dashboard_password": null
             },
             "lastUpdate": "2025-09-09 16:21:44"
+        },
+        {
+            "userID": 1001,
+            "role": "Patient",
+            "doctorID": 5925787255,
+            "user_information": {
+                "userName": "Leommesi",
+                "age": 20,
+                "ID_of_the_sensor": 1
+            },
+            "threshold_parameters": {
+                "target_glucose_level_normal": 1.0,
+                "target_glucose_level_excersise_premeal": 1.0,
+                "target_glucose_level_excersise_postmeal": 1.0,
+                "max_daily_amount_insulin": 1.0,
+                "low_threshold": 1.0,
+                "extremely_low_threshold": 1.0,
+                "fasting_threshold": 1.0,
+                "severe_hyperglycemia_threshold": 1.0,
+                "insuline_resistence": 1
+            },
+            "connected_devices": [
+                {
+                    "deviceID": 1
+                }
+            ],
+            "telegram_chat_id": null,
+            "thingspeak_info": {
+                "apikeys": [
+                    "write_api_key",
+                    "read_api_key"
+                ],
+                "channel": "channel_id"
+            },
+            "dashboard_info": {
+                "dashboard_username": "leommesi",
+                "dashboard_password": null
+            },
+            "lastUpdate": "2025-09-10 15:27:26"
         }
     ]
 }
