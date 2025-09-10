@@ -79,7 +79,7 @@ class Catalog:
     @staticmethod
     def validate_service(data):
         required_fields = {
-            "serviceID": int,
+            "serviceID": str,
             "REST_endpoint": str,
             "MQTT_sub": list,
             "MQTT_pub": list,
@@ -262,13 +262,21 @@ class Catalog:
                     cherrypy.response.status = 400
                     return json.dumps({"error": "Invalid service format"}).encode('utf-8')
                 
-                if any(s["serviceID"] == body["serviceID"] for s in self.catalog["servicesList"]):
-                    cherrypy.response.status = 409
-                    return json.dumps({"error": f"Service {body['serviceID']} already exists"}).encode('utf-8')
-                
-                body["timestamp"] = current_time
-                self.catalog["servicesList"].append(body)
-                cherrypy.response.status = 201
+                for i, service in enumerate(self.catalog["servicesList"]):
+                    if service["serviceID"] == body["serviceID"]:
+                        # Servicio ya existe, actualizar en lugar de crear
+                        self.catalog["servicesList"][i].update(body)
+                        self.catalog["servicesList"][i]["timestamp"] = current_time
+                        updated = True
+                        break
+
+                if not updated:
+                    # Servicio no existe, crear nuevo
+                    body["timestamp"] = current_time
+                    self.catalog["servicesList"].append(body)
+                    cherrypy.response.status = 201
+                else:
+                    cherrypy.response.status = 200
             
             elif resource_type == "devices":
                 if not Catalog.validate_device(body):

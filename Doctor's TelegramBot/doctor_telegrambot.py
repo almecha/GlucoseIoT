@@ -10,6 +10,7 @@ from telegram.ext import (
 )
 from datetime import datetime
 
+time.sleep(2) # wait for other services to start
 # Enable logging
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", 
@@ -60,7 +61,7 @@ class DoctorBot:
         }
         for attempt in range(self.max_retries):
             try:
-                response = requests.put(
+                response = requests.post(
                     f"{self.catalog_url}/services/doctor_bot_service",
                     json=service_data,
                     timeout=5
@@ -499,7 +500,7 @@ class DoctorBot:
                 },
                 "connected_devices": [{"deviceID": int(context.user_data['sensor_id'])}], 
                 "telegram_chat_id": None,
-                "thingspeak_info": {"apikeys": [ read_api_key, write_api_key], "channel": channel_id},
+                "thingspeak_info": {"apikeys": ['write_api_key', 'read_api_key'], "channel": 'channel_id'},
                 "dashboard_info": {
                     "dashboard_username": (context.user_data['patient_name']).replace(" ","_").lower(),
                     "dashboard_password": None
@@ -729,7 +730,7 @@ class DoctorBot:
             return await self.edit_patient_info(update, context)
 
         elif data.startswith("reports_"):
-            patient_id = data.replace("reports_", "")
+            patient_id = data.replace("reports_", "") 
             report_url = f"https://your-report-service.com/reports/{patient_id}"
             await query.edit_message_text(
                 f"📊 Patient reports available at:\n{report_url}",

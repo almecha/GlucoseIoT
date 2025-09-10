@@ -13,10 +13,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY dashboard.py .
 COPY __init__.py .
 COPY auth.py .
+COPY settings.json .
 COPY config.yaml .
 
 # Exponer el puerto en el que escucha el servicio
 EXPOSE 9070
 
 # Comando para ejecutar el servicio cuando el contenedor se inicie
-CMD ["python3", "dashboard.py"]
+CMD ["streamlit", "run", "dashboard.py"]

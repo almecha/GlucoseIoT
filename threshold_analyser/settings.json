@@ -1,0 +1,12 @@
+{
+    "catalogURL": "http://catalog:9080",
+    "brokerIP": "broker.hivemq.com",
+    "brokerPort": 1883,
+    "serviceInfo": {
+        "serviceID": "threshold_analyzer_service",
+        "last_updated": "",
+        "MQTT_sub": ["glucose_data"],
+        "MQTT_pub": ["glucose_alerts"],
+        "REST_endpoint": "https://api.thingspeak.com/update"
+    }
+}

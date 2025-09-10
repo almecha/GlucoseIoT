@@ -1,9 +1,10 @@
 {
-    "catalogURL": "http://0.0.0.0:9080",
+    "catalogURL": "http://catalog:9080",
+    "thingspeak_adaptorURL": "http://thingspeak_adaptor:8079",
     "ThingspeakWriteURL": "https://api.thingspeak.com/update?api_key=",
     "ThingspeakReadURL":  "https://api.thingspeak.com/channels",
     "serviceInfo": {
-            "serviceID": "ThingspeakAdaptor",
+            "serviceID": "thingspeak_adaptor_service",
             "REST_endpoint": "glucoseiot/thingspeak_adaptor",
             "MQTT_sub": [
                 "/glucose_level/patient/#"

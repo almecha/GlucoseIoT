@@ -8,108 +8,118 @@ services:
     networks:
       - glucose_network
 
-  doctor_bot:
-    build: "./Doctor's TelegramBot"
-    depends_on:
-      - catalog
-    networks:
-      - glucose_network
-    environment:
-      - INIT_DELAY=5  
-    restart: unless-stopped
+  # doctor_bot:
+  #   build: "./Doctor's TelegramBot"
+  #   depends_on:
+  #     - catalog
+  #   networks:
+  #     - glucose_network
+  #   environment:
+  #     - INIT_DELAY=5  
+  #   restart: unless-stopped
 
-  patients_bot:
-    build: "./Patient's TelegramBot"
-    depends_on:
-      - catalog
-      - mqtt-broker
-    networks:
-      - glucose_network
-    environment:
-      - INIT_DELAY=10  
-    restart: always
-    stdin_open: true  # Add these two lines
-    tty: true
+  # patients_bot:
+  #   build: "./Patient's TelegramBot"
+  #   depends_on:
+  #     - catalog
+  #     - mqtt-broker
+  #   networks:
+  #     - glucose_network
+  #   environment:
+  #     - INIT_DELAY=10  
+  #   restart: always
+  #   stdin_open: true  # Add these two lines
+  #   tty: true
 
   # MQTT Local Broker 
   mqtt-broker:
     image: eclipse-mosquitto:2.0
+    depends_on:
+      - catalog
     ports:
       - "1883:1883"
     networks:
       - glucose_network
     restart: unless-stopped
 
-  # # Dashboard
-  # dashboard:
-  #   build: ./dashboard
-  #   ports:
-  #     - "3000:3000"  # React app port
-  #     #- "5000:5000"  # Backend API port (if needed)
-  #   depends_on:
-  #     - catalog
-  #   networks:
-  #     - glucose_network
-  #   environment:
-  #     - CATALOG_URL=http://catalog:9080
-  #     #- REACT_APP_API_URL=http://localhost:5000/api
-  #   restart: unless-stopped
+  # Dashboard
+  dashboard:
+    build: ./dashboard
+    ports:
+      - "8091:8091"  # React app port
+      #- "5000:5000"  # Backend API port (if needed)
+    depends_on:
+      - catalog
+      - reports-generator
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+      #- REACT_APP_API_URL=http://localhost:5000/api
+    restart: unless-stopped
 
-  # # Threshold Analyzer
-  # threshold-analyzer:
-  #   build: ./threshold_analyser
-  #   depends_on:
-  #     - catalog
-  #     - mqtt-broker
-  #   networks:
-  #     - glucose_network
-  #   environment:
-  #     - CATALOG_URL=http://catalog:9080
-  #   restart: unless-stopped
+  # Threshold Analyzer
+  threshold-analyzer:
+    build: ./threshold_analyser
+    depends_on:
+      - catalog
+      - mqtt-broker
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+    restart: unless-stopped
 
-  # # Reports Generator
-  # reports-generator:
-  #   build: ./reports_generator
-  #   depends_on:
-  #     - catalog
-  #   networks:
-  #     - glucose_network
-  #   environment:
-  #     - CATALOG_URL=http://catalog:9080
-  #   ports:
-  #     - "9081:9081"  # API port for reports
-  #   restart: unless-stopped
+  # Reports Generator
+  reports-generator:
+    build: ./reports_generator
+    depends_on:
+      - catalog
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+    ports:
+      - "9083:9083"  # API port for reports
+    restart: unless-stopped
 
-  # # Thingspeak Adaptor
-  # thingspeak-adaptor:
-  #   build: ./thingspeak_adaptor
-  #   depends_on:
-  #     - catalog
-  #     - mqtt-broker
-  #   networks:
-  #     - glucose_network
-  #   environment:
-  #     - BROKER_IP=mqtt-broker
-  #     - BROKER_PORT=1883
-  #     - CATALOG_URL=http://catalog:9080
-  #     - THINGSPEAK_API_KEY=your_thingspeak_api_key
-  #     - THINGSPEAK_CHANNEL_ID=your_channel_id
-  #   restart: unless-stopped
+  # Thingspeak Adaptor
+  thingspeak-adaptor:
+    build: ./thingspeak_adaptor
+    depends_on:
+      - catalog
+      - mqtt-broker
+    networks:
+      - glucose_network
+    environment:
+      - BROKER_IP=mqtt-broker
+      - BROKER_PORT=1883
+      - CATALOG_URL=http://catalog:9080
+      - THINGSPEAK_API_KEY=your_thingspeak_api_key
+      - THINGSPEAK_CHANNEL_ID=your_channel_id
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://catalog:9080/config"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
-  # # Raspberry Pi Device Connector (Simulator)
-  # device-connector:
-  #   build: ./device_connector
-  #   depends_on:
-  #     - catalog
-  #     - mqtt-broker
-  #   networks:
-  #     - glucose_network
-  #   environment:
-  #     - CATALOG_URL=http://catalog:9080
-  #     - MQTT_BROKER=mqtt-broker
-  #     - MQTT_PORT=1883
-  #     - SIMULATION_MODE=true
-  #   restart: unless-stopped
+  # Raspberry Pi Device Connector (Simulator)
+  device-connector:
+    build: ./device_connector
+    depends_on:
+      catalog:
+        condition: service_healthy
+      thingspeak-adaptor:
+        condition: service_started
+    networks:
+      - glucose_network
+    environment:
+      - CATALOG_URL=http://catalog:9080
+      - MQTT_BROKER=mqtt-broker
+      - MQTT_PORT=1883
+      - SIMULATION_MODE=true
+    restart: unless-stopped
 
 networks:
   glucose_network:
