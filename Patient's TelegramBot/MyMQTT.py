@@ -12,7 +12,12 @@ class MyMQTT:
         self._topic = ""
         self._isSubscriber = False
         # create an instance of paho.mqtt.client
-        self._paho_mqtt = PahoMQTT.Client(clientID, True)
+        self._paho_mqtt = PahoMQTT.Client(
+            client_id=clientID,
+            callback_api_version=PahoMQTT.CallbackAPIVersion.VERSION1,
+            protocol=PahoMQTT.MQTTv311,   # optional but typical
+            transport="tcp"           # optional; keep as you had it
+        )
         # register the callback
         self._paho_mqtt.on_connect = self.myOnConnect
         self._paho_mqtt.on_message = self.myOnMessageReceived

@@ -27,10 +27,16 @@ class Thingspeak_MQTT_Worker:
 
         print(f'Broker IP: {self.broker}, Port: {self.port}')
 
-        self.topic=self.settings["serviceInfo"]["MQTT_sub"][0]  # e.g. "glucose_data/{sensor_id}"
+        self.topic=self.settings["serviceInfo"]["MQTT_sub"][0]  # e.g. "glucose_data/#"
+        self.topic_meal=self.settings["serviceInfo"]["MQTT_sub"][1]  # e.g. "status/meal/#"
+       
         self.mqttClient = MyMQTT(clientID="nuha", broker=self.broker, port=self.port, notifier=self) #uuid is to generate a random string for the client id
         self.mqttClient.start()
-        self.mqttClient.mySubscribe(self.topic)    
+        self.mqttClient.mySubscribe(self.topic) 
+        self.mqttClient.mySubscribe(self.topic_meal) 
+        
+
+         # Fetch initial patient list and API keys   
 
         self.userApiKeys = {}
         self.sensorIDstoUserID = {}
@@ -64,26 +70,31 @@ class Thingspeak_MQTT_Worker:
         #{'bn':f'SensorREST_MQTT_{self.deviceID}','e':[{'n':'humidity','v':'', 't':'','u':'%'}]}
         print(f"Received message on topic {topic}: {payload}")
         message_decoded=json.loads(payload)
-        print(f"Received message on topic {topic}: {type(message_decoded)}")
+        if (topic.split('/')[1] == self.topic.split('/')[1]):
+            patient_id = int(topic.split('/')[-1])
+            message_value=message_decoded['e'][0]['v'] 
+            decide_measurement=message_decoded['e'][0]['n']
 
-        sensor_id = int(topic.split('/')[-1])
+            error=False
 
-        message_value=message_decoded['e'][0]['v'] 
-        decide_measurement=message_decoded['e'][0]['n']
-
-        error=False
-
-        if decide_measurement=="blood_glucose":
-            print("\n \n Glucose Message")
-            field_number=1
-        else: 
-            error=True
-        if error:
-            print("Error")
-        else:
-            print(message_decoded)
-            self.uploadThingspeak(self.userApiKeys[sensor_id], field_number=field_number,field_value=message_value)
-    
+            if decide_measurement=="blood_glucose":
+                print("\n \n Glucose Message")
+                field_number=1
+            else: 
+                error=True
+            if error:
+                print("Error")
+            else:
+                print(message_decoded)
+                self.uploadThingspeak(self.userApiKeys[patient_id], field_number=field_number,field_value=message_value)
+        elif (topic == self.topic_meal[:-2]):
+            patient_id = message_decoded["patient_id"]
+            value = message_decoded["value"]
+            if (value == "eating"):
+                value = 1
+                print("Meal: Eating")
+                field_number = 2  # Assuming field 2 is for meal information
+                self.uploadThingspeak(self.userApiKeys[patient_id], field_number,value)
 
     def uploadThingspeak(self,patient_write_api_key,field_number,field_value):
         #GET https://api.thingspeak.com/update?api_key={}field1={}
