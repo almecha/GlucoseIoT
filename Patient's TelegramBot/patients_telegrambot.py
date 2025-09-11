@@ -549,13 +549,19 @@ class PatientTelegramBot:
             await message_target.reply_text("Please link your patient account first using /start.")
             return INITIAL_PATIENT_STATE
 
-        report_url = f"https://example.com/reports/{context.user_data['patient_id']}"
-        message_text = "📊 Your report is available:"
+        report_url = "http://localhost:8501"
+        message_text = (
+            "📊 Your glucose report dashboard is ready!\n\n"
+            f"🔗 Dashboard Link: {report_url}\n\n"
+            "📋 To view your report:\n"
+            "1. Copy the link above\n"
+            "2. Paste it in your web browser\n"
+            "3. Access your personalized glucose report\n\n"
+            "💡 Tip: You can bookmark this link for quick access!"
+        )
+        
         await message_target.reply_text(
             message_text,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("View Report", url=report_url)]
-            ]),
             parse_mode=None
         )
         return PATIENT_MAIN_MENU
