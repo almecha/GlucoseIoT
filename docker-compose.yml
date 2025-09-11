@@ -7,12 +7,6 @@ services:
       - ./catalog_branch/CATALOG.json:/app/CATALOG.json
     networks:
       - glucose_network
-    # healthcheck:
-    #   test: ["CMD", "curl", "-f", "http://localhost:9080/config"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
-    #   start_period: 10s
     restart: unless-stopped
 
   doctor_bot:
@@ -36,7 +30,7 @@ services:
       - INIT_DELAY=10  
       - CATALOG_URL=http://catalog:9080
     restart: always
-    stdin_open: true  # Add these two lines
+    stdin_open: true 
     tty: true
 
   # MQTT Local Broker 
@@ -62,7 +56,6 @@ services:
       - glucose_network
     environment:
       - CATALOG_URL=http://catalog:9080
-      #- REACT_APP_API_URL=http://localhost:5000/api
     restart: unless-stopped
 
   # Threshold Analyzer
