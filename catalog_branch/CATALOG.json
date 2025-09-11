@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "glucoseiot",
-    "lastUpdate": "2025-09-10 16:30:46",
+    "lastUpdate": "2025-09-11 09:10:26",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -22,7 +22,7 @@
             "MQTT_pub": [
                 "/status/meal/{PATIENT_ID}"
             ],
-            "timestamp": "2025-09-10 16:30:05"
+            "timestamp": "2025-09-11 09:07:45"
         },
         {
             "serviceID": "ThingspeakAdaptor",
@@ -32,7 +32,7 @@
                 "/status/meal/#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 16:30:46"
+            "timestamp": "2025-09-11 09:10:26"
         },
         {
             "serviceID": "ReportsGenerator",
@@ -43,14 +43,14 @@
                 "/glucose_level/patient_#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 16:30:05"
+            "timestamp": "2025-09-11 09:07:45"
         },
         {
             "serviceID": "ThresholdAnalyzer",
             "REST_endpoint": "http://threshold_analyzer:8080",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 16:30:05"
+            "timestamp": "2025-09-11 09:07:45"
         },
         {
             "serviceID": "DeviceConnector",
@@ -59,21 +59,21 @@
             "MQTT_pub": [
                 "/glucose_level/#"
             ],
-            "timestamp": "2025-09-10 16:30:04"
+            "timestamp": "2025-09-11 09:07:43"
         },
         {
             "serviceID": "DoctorTelegramBot",
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 16:30:14"
+            "timestamp": "2025-09-11 09:07:53"
         },
         {
             "serviceID": "Dashboard",
             "REST_endpoint": "http://dashboard:8091/dashboard/register",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-10 16:30:10"
+            "timestamp": "2025-09-11 09:08:03"
         }
     ],
     "serviceDetails": [],
