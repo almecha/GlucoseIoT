@@ -642,7 +642,8 @@ class PatientTelegramBot:
 
         api_keys = thingspeak_info.get('apikeys', [])
         channel_id = thingspeak_info.get('channel')
-
+        logger.info(f"ThingSpeak info for patient {patient_id}: {thingspeak_info}")
+        logger.info(f"API keys available: {api_keys}")
         if not api_keys or not channel_id:
             logger.warning(f"ThingSpeak API keys or channel ID missing for patient {patient_id}. Cannot send data to ThingSpeak.")
             return

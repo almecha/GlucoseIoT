@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY Raspberry_Publisher.py .
 COPY MyMQTT.py .
 COPY settings.json .
+COPY glucose_data_simulated_extreme.csv .
 
 #EXPOSE 9080
 

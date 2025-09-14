@@ -10,7 +10,9 @@ import random  # Simulating sensor data, replace with actual sensor read
 import requests
 import logging
 from datetime import datetime
-time.sleep(2) # wait for other services to start
+import pandas as pd
+from datetime import datetime
+
 
 # Enable logging
 logging.basicConfig(
@@ -18,9 +20,27 @@ logging.basicConfig(
     level=logging.INFO
 )
 logger = logging.getLogger(__name__)
+time.sleep(2)  # Wait for other services to start
+
+# Load simulated glucose data from CSV
+# it has different glucose values for each minute of the day
+# you can see a graphic of the data in the "glucose_png" in the folder
+
+df = pd.read_csv("glucose_data_simulated_extreme.csv")
+df["timestamp"] = pd.to_datetime(df["timestamp"])
+
 def read_blood_glucose():
-    """Simulate blood glucose readings (replace with actual sensor logic)."""
-    return round(random.uniform(40.0, 190.0), 2)  # Normal glucose range, just to test if works, later gotta figure out how to simulate full data
+    # looks for the closest timestamp in the dataframe to the current time (rounded to the nearest minute)
+    now = datetime.now()
+    current_time = now.replace(second=0, microsecond=0)  
+    simulated_time = datetime.combine(now.date(), current_time.time()) 
+    if simulated_time in list(df["timestamp"]):
+        value = df.loc[df["timestamp"] == simulated_time, "glucose"].values[0]
+    else:
+        value = df.iloc[(df["timestamp"] - simulated_time).abs().argsort()[0]]["glucose"] # closest value
+
+    return float(value)
+
 
 class RaspberryPIPublisher:
     def __init__(self, clientID, broker, port):
@@ -144,10 +164,9 @@ if __name__ == "__main__":
                         }
                     ]
                 }
-                time.sleep(1)  # Simulate time delay between readings
                 print(topic)
                 client_simplepub.publish(message_to_send, topic)
-            time.sleep(20)  # Adjust frequency as needed
+            time.sleep(60)  # Adjust frequency as needed
 
     except KeyboardInterrupt:
         print("\nStopping publisher...")

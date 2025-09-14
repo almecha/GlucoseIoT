@@ -13,6 +13,7 @@ services:
     build: "./Doctor's TelegramBot"
     depends_on:
       - catalog
+      - dashboard
     networks:
       - glucose_network
     environment:

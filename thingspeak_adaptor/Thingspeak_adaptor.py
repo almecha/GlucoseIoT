@@ -102,6 +102,7 @@ class Thingspeak_MQTT_Worker:
                 value = 1
                 print("Meal: Eating")
                 field_number = 2  # Assuming field 2 is for meal information
+                
                 self.uploadThingspeak(self.userApiKeys[patient_id], field_number,value)
 
     def uploadThingspeak(self,patient_write_api_key,field_number,field_value):
@@ -109,6 +110,7 @@ class Thingspeak_MQTT_Worker:
         #baseURL -> https://api.thingspeak.com/update?api_key=
         #fieldnumber -> depends on the field (type of measurement) we want to upload the information to
         urlToSend=f'{thingspeak_write_url}{patient_write_api_key}&field{field_number}={field_value}'
+        logger.info(f"Uploading to ThingSpeak: {urlToSend}")
         r=requests.get(urlToSend)
         print(r.json())
 
@@ -123,7 +125,9 @@ class Thingspeak_Adaptor(object):
         self.max_retries = 5
         self.retry_delay = 5  # seconds
         self.ensure_catalog_connection()
+        logger.info("Thingspeak connected to Catalog service")
         self.register_service()
+        logger.info("Thingspeak service registered with Catalog")
         
         
     # Catalog     

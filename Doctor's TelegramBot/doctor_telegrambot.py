@@ -216,16 +216,18 @@ class DoctorBot:
         return ConversationHandler.END
 
     def main_menu(self, is_master=False):
-        buttons = [
-            [InlineKeyboardButton("👨⚕️ My Patients", callback_data="my_patients")],
-            [InlineKeyboardButton("➕ Register New Patient", callback_data="register_patient")],
-            [InlineKeyboardButton("👥 List Doctors", callback_data="list_doctors")]
-        ]
+        buttons = []
+        
+        # Only show "My Patients" for regular doctors, not master doctors
+        if not is_master:
+            buttons.append([InlineKeyboardButton("👨⚕️ My Patients", callback_data="my_patients")])
+        
+        buttons.append([InlineKeyboardButton("➕ Register New Patient", callback_data="register_patient")])
+        buttons.append([InlineKeyboardButton("👥 List Doctors", callback_data="list_doctors")])
         
         if is_master:
-            buttons.insert(1, [InlineKeyboardButton("🌍 All Patients", callback_data="all_patients")])
-        
-        buttons.append([InlineKeyboardButton("🔄 Refresh", callback_data="refresh")])
+            # Insert "All Patients" at the beginning of the list
+            buttons = [[InlineKeyboardButton("🌍 All Patients", callback_data="all_patients")]] + buttons
         
         return InlineKeyboardMarkup(buttons)
 
@@ -437,45 +439,45 @@ class DoctorBot:
                 doctor_id = int(doctor_id_str)
             
 
-            # Register patient in Thingspeak and get API keys
-            thingspeak_register_response = requests.post(
-                f"https://api.thingspeak.com/channels.json",
-                json={
-                    "api_key" : "ZUBPLJ508A3NGFS2",
-                    "name": f"{(context.user_data['patient_name']).replace(' ', '_').lower()}_channel",
-                    "field1": "Glucose level",
-                    "field2": "Meal Status"
-                }
-                )
+            # # Register patient in Thingspeak and get API keys
+            # thingspeak_register_response = requests.post(
+            #     f"https://api.thingspeak.com/channels.json",
+            #     json={
+            #         "api_key" : "ZUBPLJ508A3NGFS2",
+            #         "name": f"{(context.user_data['patient_name']).replace(' ', '_').lower()}_channel",
+            #         "field1": "Glucose level",
+            #         "field2": "Meal Status"
+            #     }
+            #     )
             
-            if thingspeak_register_response.status_code != 200:
-                logger.error(f"Thingspeak registration failed: {thingspeak_register_response.text}")
-                await update.message.reply_text(
-                    "❌ Failed to register patient in Thingspeak.",
-                    reply_markup=self.main_menu(False)
-                )
-                return ConversationHandler.END
+            # if thingspeak_register_response.status_code != 200:
+            #     logger.error(f"Thingspeak registration failed: {thingspeak_register_response.text}")
+            #     await update.message.reply_text(
+            #         "❌ Failed to register patient in Thingspeak.",
+            #         reply_markup=self.main_menu(False)
+            #     )
+            #     return ConversationHandler.END
             
-            thingspeak_data = thingspeak_register_response.json()
+            # thingspeak_data = thingspeak_register_response.json()
 
-            write_api_key = thingspeak_data.get("api_keys", [{}])[0].get("api_key", "")
-            read_api_key = thingspeak_data.get("api_keys", [{}])[1].get("api_key", "")
-            channel_id = str(thingspeak_data.get("id", ""))
+            # write_api_key = thingspeak_data.get("api_keys", [{}])[0].get("api_key", "")
+            # read_api_key = thingspeak_data.get("api_keys", [{}])[1].get("api_key", "")
+            # channel_id = str(thingspeak_data.get("id", ""))
 
-            # Register patient in the dashboard
-            dashboard_register_uri = requests.get(
-                f"{self.catalog_url}/services", params={"serviceID": "Dashboard"}
-            ).json().get("REST_endpoint")
+            # # Register patient in the dashboard
+            # dashboard_register_uri = requests.get(
+            #     f"{self.catalog_url}/services", params={"serviceID": "Dashboard"}
+            # ).json().get("REST_endpoint")
 
-            dashboard_response = requests.post(
-                dashboard_register_uri,
-                json={
-                    "username": (context.user_data['patient_name']).replace(" ","_").lower(),
-                    "fields": {
-                        "password": str((context.user_data['patient_name']).replace(" ","_").lower()) + "_dashboard"  # Simple default password
-                    }
-                }
-            )
+            # dashboard_response = requests.post(
+            #     dashboard_register_uri,
+            #     json={
+            #         "username": (context.user_data['patient_name']).replace(" ","_").lower(),
+            #         "fields": {
+            #             "password": str((context.user_data['patient_name']).replace(" ","_").lower()) + "_dashboard"  # Simple default password
+            #         }
+            #     }
+            # )
 
             # Prepare patient data with all thresholds for the Catalog
             patient_data = {
@@ -615,7 +617,8 @@ class DoctorBot:
             
             doctor = doctor_response.json()[0]
             is_master = (doctor.get("role") == "MasterDoctor")
-            
+            # Store context for back navigation
+            context.user_data['viewing_all_patients'] = (query.data == "all_patients")
             # Get patients
             if query.data == "my_patients":
                 patient_ids = doctor.get("patients_id", [])
@@ -674,7 +677,7 @@ class DoctorBot:
         query = update.callback_query
         await query.answer()
         
-        patient_id = query.data
+        patient_id = query.data.replace("patient_", "") if query.data.startswith("patient_") else query.data
         
         try:
             # Get patient details
@@ -685,12 +688,13 @@ class DoctorBot:
                 return
                 
             patient = response.json()
+            back_target = "all_patients" if context.user_data.get('viewing_all_patients', False) else "my_patients"
             
             keyboard = [
                 [InlineKeyboardButton("📝 Edit Information", callback_data=f"edit_{patient_id}")],
                 [InlineKeyboardButton("📊 View Reports", callback_data=f"reports_{patient_id}")],
                 [InlineKeyboardButton("❌ Delete Patient", callback_data=f"delete_{patient_id}")],
-                [InlineKeyboardButton("🔙 Back", callback_data="my_patients")]
+                [InlineKeyboardButton("🔙 Back", callback_data=back_target)]
             ]
             
             thingspeak_info = patient.get('thingspeak_info', {})
@@ -731,12 +735,14 @@ class DoctorBot:
 
         elif data.startswith("reports_"):
             patient_id = data.replace("reports_", "") 
-            report_url = f"https://your-report-service.com/reports/{patient_id}"
+            report_url = f"http://dashboard:8501"
+         
             await query.edit_message_text(
-                f"📊 Patient reports available at:\n{report_url}",
+                f"📊 Patient reports available at:\n{report_url}\n\n"
+                f"🔗 Copy this link and open in your browser\n\n"
+                f"🔙 Back to patient menu: /mypatients",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("Open Report", url=report_url)],
-                    [InlineKeyboardButton("🔙 Back", callback_data="my_patients")]
+                    [InlineKeyboardButton("🔙 Back", callback_data=f"patient_{patient_id}")]
                 ])
             )
 
@@ -767,25 +773,28 @@ class DoctorBot:
     async def button_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         query = update.callback_query
         await query.answer()
-        
+        logger.info(f"Received callback: {query.data}")
+                
         if query.data == "register_patient":
             await self.start_patient_registration(update, context)
         elif query.data in ["my_patients", "all_patients"]:
             await self.show_patients(update, context)
-        elif query.data.startswith("patient_"):
-            await self.show_patient_options(update, context)
+        elif query.data.startswith(("edit_", "reports_", "delete_", "confirm_delete_")):
+            await self.handle_patient_actions(update, context)
         elif query.data.startswith("edit_"):
             await self.start_editing(update, context)
         elif query.data.startswith("reports_"):
             patient_id = query.data.replace("reports_", "")
-            report_url = f"https://your-report-service.com/reports/{patient_id}"
+            report_url = f"http://localhost:8501"
             await query.edit_message_text(
-                f"📊 Patient reports available at:\n{report_url}",
+                f"📊 Patient reports available at:\n{report_url}\n\n"
+                f"🔗 Copy this link and open in your browser\n\n"
+                f"🔙 Back to patient menu: /mypatients",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("Open Report", url=report_url)],
                     [InlineKeyboardButton("🔙 Back", callback_data=f"patient_{patient_id}")]
                 ])
             )
+        
         elif query.data.startswith("delete_"):
             patient_id = query.data.replace("delete_", "")
             keyboard = [
@@ -843,6 +852,11 @@ class DoctorBot:
             except Exception as e:
                 logger.error(f"Error on back_to_menu: {e}")
                 await query.edit_message_text("❌ Service error. Try again.")
+        elif query.data.isdigit():  # patient ID
+            await self.show_patient_options(update, context)
+        elif query.data.startswith("patient_"):  # Add this case to handle back from patient options
+            patient_id = query.data.replace("patient_", "")
+            await self.show_patient_options(update, context)
         else:
             await query.edit_message_text("Unknown command. Please try again.")
     
