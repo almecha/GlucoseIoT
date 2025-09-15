@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "glucoseiot",
-    "lastUpdate": "2025-09-15 15:14:15",
+    "lastUpdate": "2025-09-15 17:26:30",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -22,7 +22,7 @@
             "MQTT_pub": [
                 "/status/meal/{PATIENT_ID}"
             ],
-            "timestamp": "2025-09-15 15:04:48"
+            "timestamp": "2025-09-15 17:19:48"
         },
         {
             "serviceID": "ReportsGenerator",
@@ -33,14 +33,14 @@
                 "/glucose_level/patient_#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-15 15:04:47"
+            "timestamp": "2025-09-15 17:19:48"
         },
         {
             "serviceID": "ThresholdAnalyzer",
             "REST_endpoint": "http://threshold_analyzer:8080",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-15 15:04:47"
+            "timestamp": "2025-09-15 17:19:48"
         },
         {
             "serviceID": "ThingspeakAdaptor",
@@ -50,7 +50,7 @@
                 "/status/meal/#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-15 15:14:15"
+            "timestamp": "2025-09-15 17:26:30"
         },
         {
             "serviceID": "DeviceConnector",
@@ -59,21 +59,21 @@
             "MQTT_pub": [
                 "/glucose_level/#"
             ],
-            "timestamp": "2025-09-15 15:04:48"
+            "timestamp": "2025-09-15 17:19:48"
         },
         {
             "serviceID": "DoctorTelegramBot",
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-15 15:04:57"
+            "timestamp": "2025-09-15 17:19:57"
         },
         {
             "serviceID": "Dashboard",
             "REST_endpoint": "http://dashboard:8091/dashboard/register",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-15 15:05:31"
+            "timestamp": "2025-09-15 17:20:01"
         }
     ],
     "devicesList": [

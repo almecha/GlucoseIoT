@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   catalog:
     build: ./catalog_branch
@@ -5,8 +7,12 @@ services:
       - "9080:9080"
     volumes:
       - ./catalog_branch/CATALOG.json:/app/CATALOG.json
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     networks:
       - glucose_network
+    environment:
+      - TZ=Europe/Rome
     restart: unless-stopped
 
   doctor_bot:
@@ -17,7 +23,11 @@ services:
     networks:
       - glucose_network
     environment:
-      - INIT_DELAY=5  
+      - INIT_DELAY=5
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
 
   patients_bot:
@@ -28,8 +38,12 @@ services:
     networks:
       - glucose_network
     environment:
-      - INIT_DELAY=10  
+      - INIT_DELAY=10
       - CATALOG_URL=http://catalog:9080
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: always
     stdin_open: true 
     tty: true
@@ -43,6 +57,11 @@ services:
       - "1883:1883"
     networks:
       - glucose_network
+    environment:
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
 
   # Dashboard
@@ -57,6 +76,10 @@ services:
       - glucose_network
     environment:
       - CATALOG_URL=http://catalog:9080
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
 
   # Threshold Analyzer
@@ -69,6 +92,10 @@ services:
       - glucose_network
     environment:
       - CATALOG_URL=http://catalog:9080
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
 
   # Reports Generator
@@ -80,8 +107,12 @@ services:
       - glucose_network
     environment:
       - CATALOG_URL=http://catalog:9080
+      - TZ=Europe/Rome
     ports:
       - "9083:9083"  # API port for reports
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
 
   # Thingspeak Adaptor
@@ -98,6 +129,10 @@ services:
       - CATALOG_URL=http://catalog:9080
       - THINGSPEAK_API_KEY=your_thingspeak_api_key
       - THINGSPEAK_CHANNEL_ID=your_channel_id
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
 
   # Raspberry Pi Device Connector (Simulator)
@@ -115,6 +150,10 @@ services:
       - MQTT_BROKER=mqtt-broker
       - MQTT_PORT=1883
       - SIMULATION_MODE=true
+      - TZ=Europe/Rome
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     restart: unless-stopped
 
 networks:
