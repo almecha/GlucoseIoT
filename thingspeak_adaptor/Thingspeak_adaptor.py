@@ -54,7 +54,7 @@ class Thingspeak_MQTT_Worker:
         for patient in self.patientList:
             apikeys = patient['thingspeak_info'].get('apikeys', [])
             if apikeys:
-                self.userApiKeys[patient['userID']] = apikeys[1] if len(apikeys) > 1 else ''        
+                self.userApiKeys[patient['userID']] = apikeys[0] if len(apikeys) > 1 else ''        
         for patient in self.patientList:
             self.sensorIDstoUserID[patient["user_information"]['ID_of_the_sensor']] = patient['userID']
 
@@ -76,11 +76,11 @@ class Thingspeak_MQTT_Worker:
     
     def notify(self,topic,payload):
         #{'bn':f'SensorREST_MQTT_{self.deviceID}','e':[{'n':'humidity','v':'', 't':'','u':'%'}]}
-        print(f"Received message on topic {topic}: {payload}")
+        logger.info(f"Received message on topic {topic}: {payload}")
         message_decoded=json.loads(payload)
         if (topic.split('/')[1] == self.topic.split('/')[1]):
             patient_id = int(topic.split('/')[-1])
-            message_value=message_decoded['e'][0]['v'] 
+            message_value=float(message_decoded['e'][0]['v'])
             decide_measurement=message_decoded['e'][0]['n']
 
             error=False
@@ -95,6 +95,7 @@ class Thingspeak_MQTT_Worker:
             else:
                 print(message_decoded)
                 self.uploadThingspeak(self.userApiKeys[patient_id], field_number=field_number,field_value=message_value)
+                
         elif (topic == self.topic_meal[:-2]):
             patient_id = message_decoded["patient_id"]
             value = message_decoded["value"]

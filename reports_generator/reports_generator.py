@@ -144,7 +144,7 @@ class ReportsGenerator(object):
         if response.status_code == 200:
             user_data = response.json()
             if user_data and "userID" in user_data:
-                return user_data["thingspeak_info"]["apikeys"][0], user_data["thingspeak_info"]["channel"]
+                return user_data["thingspeak_info"]["apikeys"][1], user_data["thingspeak_info"]["channel"]
             else:
                 return None
 

@@ -32,12 +32,14 @@ df["timestamp"] = pd.to_datetime(df["timestamp"])
 def read_blood_glucose():
     # looks for the closest timestamp in the dataframe to the current time (rounded to the nearest minute)
     now = datetime.now()
-    current_time = now.replace(second=0, microsecond=0)  
-    simulated_time = datetime.combine(now.date(), current_time.time()) 
-    if simulated_time in list(df["timestamp"]):
-        value = df.loc[df["timestamp"] == simulated_time, "glucose"].values[0]
+    current_time = now.replace(second=0, microsecond=0).time()
+    df["time_only"] = df["timestamp"].dt.time
+    if current_time in list(df["time_only"]):
+        value = df.loc[df["time_only"] == current_time, "glucose"].values[0]
     else:
-        value = df.iloc[(df["timestamp"] - simulated_time).abs().argsort()[0]]["glucose"] # closest value
+        value = df.iloc[(pd.to_datetime(df["time_only"].astype(str)) - pd.to_datetime(str(current_time))).abs().argsort()[0]]["glucose"]
+
+    logging.info(f"Simulated blood glucose reading: {value} mg/dL")
 
     return float(value)
 
@@ -164,8 +166,9 @@ if __name__ == "__main__":
                         }
                     ]
                 }
-                print(topic)
+                logging.info(f"Publishing to {topic}: {message_to_send}")
                 client_simplepub.publish(message_to_send, topic)
+                time.sleep(1)
             time.sleep(60)  # Adjust frequency as needed
 
     except KeyboardInterrupt:

@@ -584,7 +584,7 @@ class PatientTelegramBot:
                 logger.info(f"Patient {patient_id} reporting meal status: {status}")
                 
                 self.mqtt_worker.publish_status(patient_id, "meal", status)
-                await self._send_to_thingspeak_direct(context, "field1", 1 if status == "eating" else 0)
+                await self._send_to_thingspeak_direct(context, "field2", 1 if status == "eating" else 0)
                 
                 await query.message.reply_text(f"✅ Meal status: `{status}` recorded.", parse_mode="Markdown")
                 return await self._send_patient_main_menu(update, context)
@@ -648,7 +648,7 @@ class PatientTelegramBot:
             logger.warning(f"ThingSpeak API keys or channel ID missing for patient {patient_id}. Cannot send data to ThingSpeak.")
             return
 
-        api_key = api_keys[0]
+        api_key = api_keys[1]
         params = {
             "api_key": api_key,
             field_name: value

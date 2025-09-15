@@ -7,7 +7,7 @@
         "Nurzhan Aitaliyev"
     ],
     "project_name": "glucoseiot",
-    "lastUpdate": "2025-09-14 22:13:17",
+    "lastUpdate": "2025-09-15 15:14:15",
     "broker": {
         "IP": "broker.hivemq.com",
         "port": 1883
@@ -22,7 +22,7 @@
             "MQTT_pub": [
                 "/status/meal/{PATIENT_ID}"
             ],
-            "timestamp": "2025-09-14 22:10:36"
+            "timestamp": "2025-09-15 15:04:48"
         },
         {
             "serviceID": "ReportsGenerator",
@@ -33,14 +33,14 @@
                 "/glucose_level/patient_#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-14 22:10:35"
+            "timestamp": "2025-09-15 15:04:47"
         },
         {
             "serviceID": "ThresholdAnalyzer",
             "REST_endpoint": "http://threshold_analyzer:8080",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-14 22:10:36"
+            "timestamp": "2025-09-15 15:04:47"
         },
         {
             "serviceID": "ThingspeakAdaptor",
@@ -50,7 +50,7 @@
                 "/status/meal/#"
             ],
             "MQTT_pub": [],
-            "timestamp": "2025-09-14 22:13:17"
+            "timestamp": "2025-09-15 15:14:15"
         },
         {
             "serviceID": "DeviceConnector",
@@ -59,21 +59,21 @@
             "MQTT_pub": [
                 "/glucose_level/#"
             ],
-            "timestamp": "2025-09-14 22:10:35"
+            "timestamp": "2025-09-15 15:04:48"
         },
         {
             "serviceID": "DoctorTelegramBot",
             "REST_endpoint": "",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-14 22:10:46"
+            "timestamp": "2025-09-15 15:04:57"
         },
         {
             "serviceID": "Dashboard",
             "REST_endpoint": "http://dashboard:8091/dashboard/register",
             "MQTT_sub": [],
             "MQTT_pub": [],
-            "timestamp": "2025-09-14 22:11:24"
+            "timestamp": "2025-09-15 15:05:31"
         }
     ],
     "devicesList": [
@@ -136,26 +136,6 @@
                 }
             ],
             "lastUpdate": "2025-09-09 16:19:28"
-        },
-        {
-            "deviceID": 1,
-            "deviceName": "GlucoseSensor",
-            "device_type": "sensor",
-            "measureType": [
-                "Glucose"
-            ],
-            "availableServices": [
-                "MQTT"
-            ],
-            "servicesDetails": [
-                {
-                    "serviceType": "MQTT",
-                    "topic": [
-                        "/glucose_level/1001"
-                    ]
-                }
-            ],
-            "lastUpdate": "2025-09-10 15:27:26"
         },
         {
             "deviceID": 1203,
@@ -229,6 +209,15 @@
             "password_hash": "$2b$12$eO9wC4LyDl4kDLPeSsY/4e0Ud3EM9fD8ytnf2eBJp2GDm1EbyFAsq",
             "patients_id": [],
             "lastUpdate": "2025-09-11 14:33:35"
+        },
+        {
+            "userID": 6619728597,
+            "userName": "Dr Maksimovic",
+            "role": "Doctor",
+            "telegram_chat_id": 6619728597,
+            "password_hash": "$2b$12$974FuvYr5DCJAzUMHzvW4.at6OI4T8HxRdAIMI3zM6.3i4OnbjGmS",
+            "patients_id": [],
+            "lastUpdate": "2025-09-15 13:30:35"
         }
     ],
     "patientsList": [
@@ -338,10 +327,10 @@
             "telegram_chat_id": 5925787255,
             "thingspeak_info": {
                 "apikeys": [
-                    "O6Z00G2K4BHSYH2M",
-                    "YNJMG4I9V3ZBUAOX"
+                    "OV04DVVENO0HO7SG",
+                    "YW0KZUGQRGCL9FTP"
                 ],
-                "channel": "3067928"
+                "channel": "2776257"
             },
             "dashboard_info": {
                 "dashboard_username": "sol_sebastian",

@@ -115,6 +115,7 @@ class ThresholdAnalyzer:
         url = f"{BASE_URL}/{channel_id}/fields/2/last.json?api_key={read_api_key}"
         print("Thingspeak URL:", url)
         response = requests.get(url, timeout=5)  # Send GET request to the URL
+        logger.info(f"Thingspeak response status code: {response.status_code}")
         
         if response.status_code == 200:
             data = response.json()  # Parse JSON response
@@ -127,19 +128,29 @@ class ThresholdAnalyzer:
         return "The Threshold Analyzer is running"
 
 
-    # Retrieve patient information from the Thingspeak service
+    # Retrieve patient information from the Thingspeak service # ----
     def get_patient_info(self, device_id): # the device ID is posted by the sensor itself inside the MQTT topic
         try:
-            response = requests.get(f"{self.catalog_url}/patients",params={"userID": device_id} , timeout=5)
+            try:
+                device_id = int(device_id)
+            except ValueError:
+                logging.error(f"Invalid device ID format: {device_id}")
+                return None
+            #response = requests.get(f"{self.catalog_url}/patients",params={"userID": device_id} , timeout=5)
+            response = requests.get(f"{self.catalog_url}/patients/{device_id}", timeout=5)
+            logger.info(f"Catalog response status code: {response.status_code}")
             if response.status_code == 200:
                 patient = response.json()
-
-                # Find the patient that has this device
+                # for patient in patients:
+                #     if "connected_devices" in patient and patient["connected_devices"]:
+                #         for device in patient["connected_devices"]:
+                #             if device.get("deviceID") == device_id:
                 return patient
-
+                # logger.warning(f"No patient found with device ID: {device_id}")
+                # return None
             else:
                 logging.error(f"Error retrieving patients list: {response.status_code}")
-                return None
+            return None
         except Exception as e:
             logging.error(f"Exception retrieving patients list: {e}")
             return None
@@ -215,11 +226,13 @@ class ThresholdAnalyzer:
          - timestamp: date-time of the measurement
          - device_id: identifier of the glucose sensor/device
         """
-        
+        logging.info(f"Raw topic: {msg.topic}")
+        logging.info(f"Raw payload: {msg.payload}")
         try:
             payload = json.loads(msg.payload.decode())
             glucose = payload.get("e")[0]["v"]
             patient_id = msg.topic.split("/")[-1] # extract patient ID from the topic
+            logging.info(f"Patient ID from topic: {patient_id}")
             logging.info(f"Received message on topic {msg.topic}: {msg.payload}")
             if glucose is None or patient_id is None:
                 logging.error("Message payload missing required fields ('glucose' or 'device_id').")
@@ -231,7 +244,7 @@ class ThresholdAnalyzer:
                 return
 
             # Retrieve patient details as a JSON file from the Thingspeak service.
-            patient_info = self.get_patient_info(patient_id)
+            patient_info = self.get_patient_info(patient_id) # it is actually the device id
             if patient_info is None:
                 logging.error("Failed to retrieve patient info; cannot process message.")
                 return
