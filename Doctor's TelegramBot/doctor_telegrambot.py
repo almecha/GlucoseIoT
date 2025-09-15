@@ -502,7 +502,7 @@ class DoctorBot:
                 },
                 "connected_devices": [{"deviceID": int(context.user_data['sensor_id'])}], 
                 "telegram_chat_id": None,
-                "thingspeak_info": {"apikeys": ['write_api_key', 'read_api_key'], "channel": 'channel_id'},
+                "thingspeak_info": {"apikeys": [write_api_key, read_api_key], "channel": channel_id},
                 "dashboard_info": {
                     "dashboard_username": (context.user_data['patient_name']).replace(" ","_").lower(),
                     "dashboard_password": None
